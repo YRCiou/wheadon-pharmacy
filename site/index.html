@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>惠登藥局 Wheadon Pharmacy｜商品查詢</title>
+<meta name="description" content="惠登藥局商品查詢，依藥品或症狀搜尋。" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css?v=2" />
+</head>
+<body>
+<header class="site-header">
+  <div class="header-inner">
+    <a href="#" class="brand">
+      <span class="brand-name">惠登藥局</span>
+      <span class="brand-en">Wheadon Pharmacy</span>
+    </a>
+    <div class="search-wrap">
+      <input
+        id="searchInput"
+        type="search"
+        placeholder="搜尋藥品名稱、症狀、適用性…"
+        autocomplete="off"
+        aria-label="搜尋"
+      />
+      <button id="searchClear" type="button" aria-label="清除搜尋" hidden>×</button>
+    </div>
+  </div>
+</header>
+
+<main class="site-main">
+  <div id="status" class="status" aria-live="polite">載入中…</div>
+  <div id="gallery" class="gallery" hidden></div>
+  <div id="empty" class="empty" hidden>
+    <p>找不到符合的商品。</p>
+  </div>
+</main>
+
+<div id="modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card">
+    <button class="modal-close" type="button" data-close aria-label="關閉">×</button>
+    <div class="modal-image-wrap">
+      <img id="modalImage" alt="" />
+      <div id="modalStamps" class="stamps"></div>
+    </div>
+    <div class="modal-body">
+      <h2 id="modalTitle" class="modal-title"></h2>
+      <div id="modalPrice" class="modal-price"></div>
+      <div id="modalUsage" class="modal-usage"></div>
+      <div id="modalQty" class="modal-qty"></div>
+      <p id="modalCaption" class="modal-caption"></p>
+      <a id="modalIgLink" class="modal-ig" target="_blank" rel="noopener">在 Instagram 查看原文 →</a>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-block">
+      <h3>聯絡我們</h3>
+      <p>📍 <a href="https://www.google.com/maps/search/?api=1&query=406臺中市北屯區平順里昌平路一段434號" target="_blank" rel="noopener">406 臺中市北屯區平順里昌平路一段434號</a></p>
+      <p>📷 <a href="https://www.instagram.com/wheadonpharmacy/" target="_blank" rel="noopener">@wheadonpharmacy</a></p>
+    </div>
+    <div class="footer-block">
+      <h3>關於</h3>
+      <p>商品資訊以實際店面為準。<br />部分商品依法不得於網路販售，請洽詢藥師。</p>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    © <span id="year"></span> 惠登藥局 Wheadon Pharmacy
+  </div>
+</footer>
+
+<script src="js/config.js?v=2"></script>
+<script src="js/app.js?v=2"></script>
+</body>
+</html>

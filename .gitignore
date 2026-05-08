@@ -1,0 +1,22 @@
+# IG 原始抓圖（很大，不需要上傳；site/images/ 是處理過的展示用）
+ig_raw/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
