@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
+<title>惠登藥局 商品管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ruthie.css?v=1" />
+</head>
+<body>
+
+<!-- 登入頁 -->
+<section id="view-login" class="view">
+  <div class="login-card">
+    <h1>惠登藥局<span>商品管理</span></h1>
+    <form id="loginForm" autocomplete="off">
+      <label>
+        <span>帳號</span>
+        <input id="loginUser" type="text" autocomplete="username" required />
+      </label>
+      <label>
+        <span>密碼</span>
+        <input id="loginPwd" type="password" autocomplete="current-password" required />
+      </label>
+      <div id="loginErr" class="err" hidden></div>
+      <button type="submit" id="loginBtn">登入</button>
+    </form>
+  </div>
+</section>
+
+<!-- 商品管理頁 -->
+<section id="view-manage" class="view" hidden>
+  <header class="topbar">
+    <div class="brand">惠登藥局 <span>商品管理</span></div>
+    <input id="search" type="search" placeholder="搜尋商品名稱、適用性…" />
+    <div class="topbar-actions">
+      <button id="addBtn" class="btn-primary">＋ 新增商品</button>
+      <button id="reloadBtn" class="btn-ghost" title="重新讀取">↻</button>
+      <button id="changePwdBtn" class="btn-ghost">修改密碼</button>
+      <button id="logoutBtn" class="btn-ghost">登出</button>
+    </div>
+  </header>
+
+  <div id="manageStatus" class="status">載入中…</div>
+
+  <div id="tableWrap" class="table-wrap" hidden>
+    <table id="prodTable">
+      <thead>
+        <tr>
+          <th>圖</th>
+          <th>商品名稱</th>
+          <th class="num">原價</th>
+          <th class="num">特價</th>
+          <th class="num">數量</th>
+          <th class="cb" title="諮詢藥師">諮</th>
+          <th class="cb" title="熱賣">熱</th>
+          <th class="cb" title="完售">售</th>
+          <th class="cb" title="隱藏">藏</th>
+          <th class="action">編輯</th>
+        </tr>
+      </thead>
+      <tbody id="prodBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 編輯 / 新增 modal -->
+<div id="editModal" class="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card">
+    <button class="modal-close" type="button" data-close aria-label="關閉">×</button>
+    <h2 id="editTitle">編輯商品</h2>
+    <form id="editForm" autocomplete="off">
+      <input type="hidden" id="editRow" />
+      <input type="hidden" id="editId" />
+
+      <div class="grid-2">
+        <label class="full">
+          <span>商品名稱</span>
+          <input type="text" id="f_name" />
+        </label>
+        <label>
+          <span>原價</span>
+          <input type="number" id="f_priceOrig" min="0" step="1" />
+        </label>
+        <label>
+          <span>特價</span>
+          <input type="number" id="f_priceSale" min="0" step="1" />
+        </label>
+        <label class="full">
+          <span>症狀關鍵字 <small>(空白分隔)</small></span>
+          <input type="text" id="f_keywords" />
+        </label>
+        <label class="full">
+          <span>適用性</span>
+          <textarea id="f_usage" rows="3"></textarea>
+        </label>
+        <label>
+          <span>剩餘數量</span>
+          <input type="number" id="f_qty" min="0" step="1" />
+        </label>
+        <div></div>
+        <div class="checkbox-row full">
+          <label class="cbx"><input type="checkbox" id="f_consult" /><span>諮詢藥師</span></label>
+          <label class="cbx"><input type="checkbox" id="f_hot" /><span>熱賣</span></label>
+          <label class="cbx"><input type="checkbox" id="f_soldOut" /><span>完售</span></label>
+          <label class="cbx"><input type="checkbox" id="f_hide" /><span>隱藏</span></label>
+        </div>
+      </div>
+
+      <div id="imageBlock" class="image-block">
+        <label class="full">
+          <span>商品圖</span>
+          <div class="dropzone" id="dropzone">
+            <input type="file" id="f_image" accept="image/*" hidden />
+            <div id="dropHint">拖拉圖片到這裡，或點擊選擇檔案</div>
+            <img id="dropPreview" hidden />
+          </div>
+        </label>
+      </div>
+
+      <div id="editErr" class="err" hidden></div>
+
+      <div class="modal-actions">
+        <button type="button" data-close class="btn-ghost">取消</button>
+        <button type="submit" id="saveBtn" class="btn-primary">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 修改密碼 modal -->
+<div id="pwdModal" class="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card narrow">
+    <button class="modal-close" type="button" data-close aria-label="關閉">×</button>
+    <h2>修改密碼</h2>
+    <form id="pwdForm" autocomplete="off">
+      <label>
+        <span>新密碼 (至少 8 字元)</span>
+        <input type="password" id="newPwd1" required minlength="8" />
+      </label>
+      <label>
+        <span>再輸入一次</span>
+        <input type="password" id="newPwd2" required minlength="8" />
+      </label>
+      <div id="pwdErr" class="err" hidden></div>
+      <div class="modal-actions">
+        <button type="button" data-close class="btn-ghost">取消</button>
+        <button type="submit" class="btn-primary">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="ruthie.js?v=1"></script>
+</body>
+</html>
