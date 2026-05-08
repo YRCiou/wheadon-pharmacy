@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="robots" content="noindex,nofollow" />
 <title>惠登藥局 商品管理</title>
+<link rel="icon" type="image/png" href="/favicon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="ruthie.css?v=2" />
+<link rel="stylesheet" href="ruthie.css?v=3" />
 </head>
 <body>
 
@@ -38,6 +39,7 @@
     <input id="search" type="search" placeholder="搜尋商品名稱、適用性…" />
     <div class="topbar-actions">
       <button id="addBtn" class="btn-primary">＋ 新增商品</button>
+      <button id="igImportBtn" class="btn-primary" style="background:#c13584">📥 從 IG 連結</button>
       <button id="reloadBtn" class="btn-ghost" title="重新讀取">↻</button>
       <button id="usersBtn" class="btn-ghost">管理員</button>
       <button id="logoutBtn" class="btn-ghost">登出</button>
@@ -132,6 +134,31 @@
   </div>
 </div>
 
+<!-- 從 IG 匯入 modal -->
+<div id="igModal" class="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card narrow">
+    <button class="modal-close" type="button" data-close aria-label="關閉">×</button>
+    <h2>從 IG 連結匯入</h2>
+    <p style="margin:0 0 14px;font-size:13px;color:#666;line-height:1.6">
+      在 IG App / 網頁上開啟貼文，點分享 → 複製連結，貼到下面。系統會自動下載圖片、抓貼文文字、加進試算表。
+    </p>
+    <form id="igForm" autocomplete="off">
+      <label>
+        <span>IG 貼文網址</span>
+        <input type="url" id="igUrl" required
+               placeholder="https://www.instagram.com/p/Dxxxxxxx/"
+               pattern="https?://(www\.)?instagram\.com/(p|reel)/[A-Za-z0-9_-]+.*" />
+      </label>
+      <div id="igErr" class="err" hidden></div>
+      <div class="modal-actions">
+        <button type="button" data-close class="btn-ghost">取消</button>
+        <button type="submit" id="igSubmit" class="btn-primary">匯入</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- 管理員管理 modal -->
 <div id="usersModal" class="modal" hidden>
   <div class="modal-backdrop" data-close></div>
@@ -221,6 +248,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script src="ruthie.js?v=2"></script>
+<script src="ruthie.js?v=3"></script>
 </body>
 </html>

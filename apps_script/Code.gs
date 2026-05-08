@@ -104,6 +104,7 @@ function doPost(e) {
     if (action === "update")         return json_(handleUpdate_(body));
     if (action === "add")            return json_(handleAdd_(body));
     if (action === "uploadImage")    return json_(handleUploadImage_(body));
+    if (action === "importFromIg")   return json_(handleImportFromIg_(body));
     if (action === "changePassword") return json_(handleChangePassword_(body));
     if (action === "renameSelf")     return json_(handleRenameSelf_(body));
     if (action === "listUsers")      return json_(handleListUsers_(body));
@@ -289,6 +290,122 @@ function handleAdd_(body) {
   const row = headers.map(h => fields[h] !== undefined ? fields[h] : "");
   sheet.appendRow(row);
   return { ok: true, row: sheet.getLastRow() };
+}
+
+// ============================================================
+// 從 IG 連結匯入：抓 og:image + og:description → 上傳 GitHub → 寫試算表
+// ============================================================
+function handleImportFromIg_(body) {
+  const url = String(body.url || "").trim();
+  const m = url.match(/instagram\.com\/(?:p|reel)\/([A-Za-z0-9_-]+)/);
+  if (!m) return { ok: false, error: "請貼有效的 IG 貼文網址，例如 https://www.instagram.com/p/Dxxxxxx/" };
+  const shortcode = m[1];
+  const productId = "ig-" + shortcode;
+
+  // 先查試算表是否已匯入過
+  const sheet = getSheet_();
+  const headers = getHeaders_(sheet);
+  const idCol = headers.indexOf("id");
+  if (idCol < 0) return { ok: false, error: "試算表沒有 id 欄位" };
+  const ids = sheet.getRange(2, idCol + 1, Math.max(sheet.getLastRow() - 1, 1), 1)
+    .getValues().map(r => String(r[0]));
+  if (ids.indexOf(productId) >= 0) {
+    return { ok: false, error: "這篇 IG 貼文已經匯入過了 (id: " + productId + ")" };
+  }
+  // 也檢查純 shortcode（IG 同步舊資料的格式）以及純 post_id（gallery-dl 的格式）
+  if (ids.indexOf(shortcode) >= 0) {
+    return { ok: false, error: "這篇 IG 貼文已存在 (shortcode: " + shortcode + ")" };
+  }
+
+  // 抓 IG 公開頁面
+  const igResp = UrlFetchApp.fetch("https://www.instagram.com/p/" + shortcode + "/", {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Accept-Language": "zh-TW,zh;q=0.9,en;q=0.8",
+    },
+    muteHttpExceptions: true,
+    followRedirects: true,
+  });
+  const igCode = igResp.getResponseCode();
+  if (igCode !== 200) {
+    return { ok: false, error: "無法讀取 IG 貼文 (status " + igCode + ")，貼文可能不公開或 IG 暫時擋請求" };
+  }
+  const html = igResp.getContentText();
+
+  // 抓 og:image 和 og:description
+  const ogImageMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+    || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+  if (!ogImageMatch) return { ok: false, error: "找不到圖片連結 (IG 可能改版了)" };
+  const ogImageUrl = ogImageMatch[1].replace(/&amp;/g, "&");
+
+  const ogDescMatch = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)
+    || html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
+  let caption = "";
+  if (ogDescMatch) {
+    caption = ogDescMatch[1]
+      .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+      .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+    // og:description 通常是  '@account on Instagram: "actual caption"'
+    const innerMatch = caption.match(/:\s*"(.+)"/s);
+    if (innerMatch) caption = innerMatch[1];
+  }
+  // 第一行（短一點）當商品名稱
+  let title = caption.split(/\r?\n/).find(l => l.trim()) || "";
+  title = title.trim();
+  if (title.length > 60) title = title.substring(0, 60) + "…";
+
+  // 抓圖
+  const imgResp = UrlFetchApp.fetch(ogImageUrl, { muteHttpExceptions: true, followRedirects: true });
+  if (imgResp.getResponseCode() !== 200) {
+    return { ok: false, error: "圖片下載失敗 (status " + imgResp.getResponseCode() + ")" };
+  }
+  const imgBytes = imgResp.getContent();
+  const contentBase64 = Utilities.base64Encode(imgBytes);
+
+  // 上傳 GitHub
+  const props = PropertiesService.getScriptProperties();
+  const token = props.getProperty("GITHUB_TOKEN");
+  if (!token) return { ok: false, error: "尚未設定 GITHUB_TOKEN" };
+  const stamp = Utilities.formatDate(new Date(), "Asia/Taipei", "yyyyMMdd-HHmmss");
+  const filename = "ig-" + shortcode + ".jpg";
+  const path = IMAGE_DIR + "/" + stamp + "-" + filename;
+  const ghUrl = "https://api.github.com/repos/" + REPO_OWNER + "/" + REPO_NAME + "/contents/" + path;
+  const ghResp = UrlFetchApp.fetch(ghUrl, {
+    method: "put",
+    headers: {
+      "Authorization": "Bearer " + token,
+      "Accept": "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+    contentType: "application/json",
+    payload: JSON.stringify({
+      message: "從 IG 匯入：" + shortcode,
+      content: contentBase64,
+    }),
+    muteHttpExceptions: true,
+  });
+  if (ghResp.getResponseCode() !== 201 && ghResp.getResponseCode() !== 200) {
+    return { ok: false, error: "GitHub 上傳失敗: " + ghResp.getContentText().substring(0, 200) };
+  }
+
+  // 寫試算表
+  const fields = {
+    id: productId,
+    shortcode: shortcode,
+    "商品名稱": title,
+    "image": "images/" + stamp + "-" + filename,
+    "_caption_預覽": caption.substring(0, 500),
+  };
+  const row = headers.map(h => fields[h] !== undefined ? fields[h] : "");
+  sheet.appendRow(row);
+  return {
+    ok: true,
+    id: productId,
+    shortcode: shortcode,
+    title: title,
+    image: fields.image,
+    captionPreview: caption.substring(0, 100),
+  };
 }
 
 // ============================================================

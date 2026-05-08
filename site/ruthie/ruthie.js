@@ -348,6 +348,35 @@
   }
   $("#addBtn").onclick = openAddModal;
 
+  // -------------------------------------------------- 從 IG 匯入
+  $("#igImportBtn").onclick = () => {
+    $("#igUrl").value = "";
+    $("#igErr").hidden = true;
+    $("#igModal").hidden = false;
+    setTimeout(() => $("#igUrl").focus(), 100);
+  };
+  $("#igForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const url = $("#igUrl").value.trim();
+    const err = $("#igErr");
+    const btn = $("#igSubmit");
+    err.hidden = true;
+    btn.disabled = true;
+    btn.textContent = "匯入中…";
+    try {
+      const r = await api("importFromIg", { url });
+      $("#igModal").hidden = true;
+      toast("✓ 已匯入：" + (r.title || r.id));
+      await loadList();
+    } catch (e) {
+      err.textContent = e.message;
+      err.hidden = false;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "匯入";
+    }
+  });
+
   function resetDropzone() {
     pendingImageBase64 = null;
     pendingImageName = null;
