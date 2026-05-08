@@ -236,6 +236,56 @@ a:hover { text-decoration: underline; }
 }
 .qty.is-low { color: var(--hot); font-weight: 700; }
 
+/* ---------- 熱賣中跑馬燈（蓋在圖片上半部，不擋產品本身）---------- */
+.hot-marquee {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 38px;
+  background: linear-gradient(90deg,
+    #b91c1c 0%,
+    #dc2626 25%,
+    #ef4444 50%,
+    #dc2626 75%,
+    #b91c1c 100%);
+  color: #fff;
+  font-weight: 900;
+  font-size: 18px;
+  letter-spacing: 3px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  z-index: 5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.hot-marquee-track {
+  display: flex;
+  white-space: nowrap;
+  animation: marquee 18s linear infinite;
+  will-change: transform;
+}
+.hot-marquee-track span {
+  display: inline-block;
+  flex-shrink: 0;
+}
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* 詳細視窗版本：略大一點 */
+.modal .hot-marquee {
+  height: 46px;
+  font-size: 22px;
+  letter-spacing: 4px;
+}
+.modal .hot-marquee-track {
+  animation-duration: 22s;
+}
+
 /* ---------- Stamps (印章) ---------- */
 .stamps {
   position: absolute;

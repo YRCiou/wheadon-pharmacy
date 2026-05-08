@@ -25,7 +25,7 @@
     modalQty: $("#modalQty"),
     modalCaption: $("#modalCaption"),
     modalIgLink: $("#modalIgLink"),
-    modalStamps: $("#modalStamps"),
+    modalOverlay: $("#modalOverlay"),
     year: $("#year"),
   };
 
@@ -254,11 +254,17 @@
     return ""; // no price set
   }
 
-  function stampsHTML(item) {
-    const parts = [];
-    if (item.soldOut) parts.push(`<div class="stamp is-sold">完售</div>`);
-    else if (item.hot) parts.push(`<div class="stamp is-hot">熱賣</div>`);
-    return parts.join("");
+  // 完售：滿版印章 + 圖片變灰
+  // 熱賣：上方跑馬燈，不擋商品本身
+  function overlayHTML(item) {
+    if (item.soldOut) {
+      return `<div class="stamps"><div class="stamp is-sold">完售</div></div>`;
+    }
+    if (item.hot) {
+      const seg = "熱賣中　・　".repeat(8);
+      return `<div class="hot-marquee" aria-label="熱賣中"><div class="hot-marquee-track"><span>${seg}</span><span>${seg}</span></div></div>`;
+    }
+    return "";
   }
 
   function qtyHTML(item) {
@@ -288,7 +294,7 @@
     card.innerHTML = `
       <div class="card-image-wrap">
         <img loading="lazy" src="${escapeHTML(cover)}" alt="${escapeHTML(item.title)}" />
-        <div class="stamps">${stampsHTML(item)}</div>
+        ${overlayHTML(item)}
       </div>
       <div class="card-body">
         <h3 class="card-title">${highlight(item.title, query)}</h3>
@@ -348,7 +354,7 @@
     } else {
       els.modalIgLink.hidden = true;
     }
-    els.modalStamps.innerHTML = stampsHTML(item);
+    els.modalOverlay.innerHTML = overlayHTML(item);
     document.body.style.overflow = "hidden";
   }
 
