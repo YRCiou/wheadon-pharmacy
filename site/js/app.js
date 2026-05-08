@@ -116,6 +116,7 @@
     qty: ["qty", "quantity", "剩餘數量", "庫存", "數量"],
     usage: ["usage", "適用性", "適用範圍", "適應症"],
     hide: ["hide", "隱藏", "不顯示"],
+    image: ["image", "圖片", "圖片網址", "image_url"],
   };
 
   function csvToObjects(csvText) {
@@ -151,6 +152,7 @@
         qty: num(get("qty")),
         usage: get("usage"),
         hide: truthy(get("hide")),
+        image: get("image"),
       });
     }
     return out;
@@ -178,8 +180,12 @@
   function mergeData(posts, sheetRows) {
     const sheetById = new Map();
     for (const r of sheetRows) sheetById.set(r.id, r);
-    return posts.map((p) => {
+    const usedSheetIds = new Set();
+
+    // 1. IG 貼文 + 試算表合併（以 IG 為主）
+    const merged = posts.map((p) => {
       const s = sheetById.get(p.id) || {};
+      if (s.id) usedSheetIds.add(s.id);
       return {
         id: p.id,
         shortcode: p.shortcode || s.shortcode || "",
@@ -195,9 +201,35 @@
         usage: s.usage || "",
         hide: !!s.hide,
         url: p.url,
-        images: p.images || [],
+        // 試算表的 image 欄位優先（如果有填，取代 IG 圖）
+        images: s.image ? [s.image] : (p.images || []),
       };
     });
+
+    // 2. 純試算表新增的商品（沒對應 IG 貼文，但有填 image 欄位）
+    for (const s of sheetRows) {
+      if (usedSheetIds.has(s.id)) continue;
+      if (!s.image) continue;
+      merged.unshift({   // 放在最前面，新商品比較顯眼
+        id: s.id,
+        shortcode: s.shortcode || "",
+        title: s.name || "(未命名商品)",
+        caption: "",
+        keywords: s.keywords || "",
+        priceOriginal: s.priceOriginal,
+        priceSale: s.priceSale,
+        consult: !!s.consult,
+        hot: !!s.hot,
+        soldOut: !!s.soldOut,
+        qty: s.qty,
+        usage: s.usage || "",
+        hide: !!s.hide,
+        url: "",
+        images: [s.image],
+      });
+    }
+
+    return merged;
   }
 
   // -------------------------------------------------- render
