@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="ruthie.css?v=1" />
+<link rel="stylesheet" href="ruthie.css?v=2" />
 </head>
 <body>
 
@@ -39,7 +39,7 @@
     <div class="topbar-actions">
       <button id="addBtn" class="btn-primary">＋ 新增商品</button>
       <button id="reloadBtn" class="btn-ghost" title="重新讀取">↻</button>
-      <button id="changePwdBtn" class="btn-ghost">修改密碼</button>
+      <button id="usersBtn" class="btn-ghost">管理員</button>
       <button id="logoutBtn" class="btn-ghost">登出</button>
     </div>
   </header>
@@ -132,12 +132,27 @@
   </div>
 </div>
 
-<!-- 修改密碼 modal -->
+<!-- 管理員管理 modal -->
+<div id="usersModal" class="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card narrow">
+    <button class="modal-close" type="button" data-close aria-label="關閉">×</button>
+    <h2>管理員</h2>
+    <div id="usersList" class="users-list">載入中…</div>
+    <div class="users-actions">
+      <button type="button" id="renameSelfBtn" class="btn-ghost">改我的帳號</button>
+      <button type="button" id="changePwdBtn" class="btn-ghost">改我的密碼</button>
+      <button type="button" id="addUserBtn" class="btn-primary">＋ 新增管理員</button>
+    </div>
+  </div>
+</div>
+
+<!-- 改密碼 modal -->
 <div id="pwdModal" class="modal" hidden>
   <div class="modal-backdrop" data-close></div>
   <div class="modal-card narrow">
     <button class="modal-close" type="button" data-close aria-label="關閉">×</button>
-    <h2>修改密碼</h2>
+    <h2>修改我的密碼</h2>
     <form id="pwdForm" autocomplete="off">
       <label>
         <span>新密碼 (至少 8 字元)</span>
@@ -156,8 +171,56 @@
   </div>
 </div>
 
+<!-- 新增管理員 modal -->
+<div id="addUserModal" class="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card narrow">
+    <button class="modal-close" type="button" data-close aria-label="關閉">×</button>
+    <h2>新增管理員</h2>
+    <form id="addUserForm" autocomplete="off">
+      <label>
+        <span>帳號 <small>(英數字、底線、連字號，3~30 字元)</small></span>
+        <input type="text" id="newUserName" required pattern="[a-zA-Z0-9_-]{3,30}" />
+      </label>
+      <label>
+        <span>密碼 (至少 8 字元)</span>
+        <input type="password" id="newUserPwd1" required minlength="8" />
+      </label>
+      <label>
+        <span>再輸入一次</span>
+        <input type="password" id="newUserPwd2" required minlength="8" />
+      </label>
+      <div id="addUserErr" class="err" hidden></div>
+      <div class="modal-actions">
+        <button type="button" data-close class="btn-ghost">取消</button>
+        <button type="submit" class="btn-primary">新增</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 改帳號名稱 modal -->
+<div id="renameModal" class="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card narrow">
+    <button class="modal-close" type="button" data-close aria-label="關閉">×</button>
+    <h2>更換我的帳號名稱</h2>
+    <form id="renameForm" autocomplete="off">
+      <label>
+        <span>新帳號 <small>(英數字、底線、連字號，3~30 字元)</small></span>
+        <input type="text" id="renameNew" required pattern="[a-zA-Z0-9_-]{3,30}" />
+      </label>
+      <div id="renameErr" class="err" hidden></div>
+      <div class="modal-actions">
+        <button type="button" data-close class="btn-ghost">取消</button>
+        <button type="submit" class="btn-primary">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div id="toast" class="toast" hidden></div>
 
-<script src="ruthie.js?v=1"></script>
+<script src="ruthie.js?v=2"></script>
 </body>
 </html>

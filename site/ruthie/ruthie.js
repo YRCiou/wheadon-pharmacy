@@ -471,7 +471,57 @@
     }
   });
 
-  // -------------------------------------------------- change password
+  // -------------------------------------------------- 管理員管理
+  $("#usersBtn").onclick = async () => {
+    $("#usersModal").hidden = false;
+    await loadUsers();
+  };
+
+  async function loadUsers() {
+    const wrap = $("#usersList");
+    wrap.textContent = "載入中…";
+    try {
+      const r = await api("listUsers");
+      wrap.textContent = "";
+      for (const u of r.users) {
+        const row = document.createElement("div");
+        row.className = "user-row";
+        const name = document.createElement("span");
+        name.className = "user-name";
+        name.textContent = u;
+        row.append(name);
+        if (u === r.me) {
+          const tag = document.createElement("span");
+          tag.className = "user-tag";
+          tag.textContent = "你";
+          row.append(tag);
+        } else {
+          const del = document.createElement("button");
+          del.className = "user-del";
+          del.textContent = "刪除";
+          del.disabled = r.users.length <= 1;
+          del.onclick = async () => {
+            if (!confirm(`確定刪除管理員 ${u}？`)) return;
+            del.disabled = true;
+            try {
+              await api("removeUser", { username: u });
+              toast("✓ 已刪除 " + u);
+              await loadUsers();
+            } catch (e) {
+              toast(e.message, true);
+              del.disabled = false;
+            }
+          };
+          row.append(del);
+        }
+        wrap.append(row);
+      }
+    } catch (e) {
+      wrap.textContent = "讀取失敗：" + e.message;
+    }
+  }
+
+  // 改密碼
   $("#changePwdBtn").onclick = () => {
     $("#newPwd1").value = "";
     $("#newPwd2").value = "";
@@ -489,6 +539,65 @@
       await api("changePassword", { newPassword: p1 });
       $("#pwdModal").hidden = true;
       toast("✓ 密碼已更新，下次登入請用新密碼");
+    } catch (e) {
+      err.textContent = e.message;
+      err.hidden = false;
+    }
+  });
+
+  // 改帳號名稱
+  $("#renameSelfBtn").onclick = () => {
+    $("#renameNew").value = "";
+    $("#renameErr").hidden = true;
+    $("#renameModal").hidden = false;
+  };
+  $("#renameForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const newName = $("#renameNew").value.trim();
+    const err = $("#renameErr");
+    if (!/^[a-zA-Z0-9_-]{3,30}$/.test(newName)) {
+      err.textContent = "帳號需 3~30 字元，限英數、底線、連字號";
+      err.hidden = false;
+      return;
+    }
+    try {
+      const r = await api("renameSelf", { newUsername: newName });
+      // 後端會回傳新 token；存起來
+      setToken(r.token, r.username);
+      $("#renameModal").hidden = true;
+      toast("✓ 帳號已改成 " + r.username);
+      await loadUsers();
+    } catch (e) {
+      err.textContent = e.message;
+      err.hidden = false;
+    }
+  });
+
+  // 新增管理員
+  $("#addUserBtn").onclick = () => {
+    $("#newUserName").value = "";
+    $("#newUserPwd1").value = "";
+    $("#newUserPwd2").value = "";
+    $("#addUserErr").hidden = true;
+    $("#addUserModal").hidden = false;
+  };
+  $("#addUserForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = $("#newUserName").value.trim();
+    const p1 = $("#newUserPwd1").value;
+    const p2 = $("#newUserPwd2").value;
+    const err = $("#addUserErr");
+    if (!/^[a-zA-Z0-9_-]{3,30}$/.test(name)) {
+      err.textContent = "帳號需 3~30 字元，限英數、底線、連字號";
+      err.hidden = false; return;
+    }
+    if (p1.length < 8) { err.textContent = "密碼至少 8 字元"; err.hidden = false; return; }
+    if (p1 !== p2) { err.textContent = "兩次密碼不一致"; err.hidden = false; return; }
+    try {
+      await api("addUser", { username: name, password: p1 });
+      $("#addUserModal").hidden = true;
+      toast("✓ 新增管理員 " + name);
+      await loadUsers();
     } catch (e) {
       err.textContent = e.message;
       err.hidden = false;

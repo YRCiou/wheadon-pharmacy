@@ -38,6 +38,44 @@ function setupHashPassword() {
 }
 
 // ============================================================
+// 多管理員支援
+// 把舊版的 AUTH_USERNAME / AUTH_PASSWORD_HASH 自動遷移成 AUTH_USERS
+// ============================================================
+function getUsers_() {
+  const props = PropertiesService.getScriptProperties();
+  const raw = props.getProperty("AUTH_USERS");
+  if (raw) {
+    try { return JSON.parse(raw); } catch (e) { return []; }
+  }
+  // 遷移：舊版單一使用者
+  const u = props.getProperty("AUTH_USERNAME");
+  const h = props.getProperty("AUTH_PASSWORD_HASH");
+  if (u && h) {
+    const users = [{ u: u, h: h }];
+    props.setProperty("AUTH_USERS", JSON.stringify(users));
+    return users;
+  }
+  return [];
+}
+
+function setUsers_(users) {
+  PropertiesService.getScriptProperties().setProperty("AUTH_USERS", JSON.stringify(users));
+}
+
+function findUser_(username) {
+  return getUsers_().find(u => u.u === username) || null;
+}
+
+function getTokenUsername_(token) {
+  if (!token) return null;
+  try {
+    const ep = token.split(".")[0];
+    const data = JSON.parse(ub64u_(ep));
+    return data.u;
+  } catch (e) { return null; }
+}
+
+// ============================================================
 // HTTP 入口 (前端用 POST 呼叫，body 為 JSON)
 // 用 text/plain 避開瀏覽器的 CORS preflight
 // ============================================================
@@ -67,10 +105,14 @@ function doPost(e) {
     if (action === "add")            return json_(handleAdd_(body));
     if (action === "uploadImage")    return json_(handleUploadImage_(body));
     if (action === "changePassword") return json_(handleChangePassword_(body));
+    if (action === "renameSelf")     return json_(handleRenameSelf_(body));
+    if (action === "listUsers")      return json_(handleListUsers_(body));
+    if (action === "addUser")        return json_(handleAddUser_(body));
+    if (action === "removeUser")     return json_(handleRemoveUser_(body));
 
     return json_({ ok: false, error: "Unknown action: " + action });
   } catch (err) {
-    return json_({ ok: false, error: String(err) });
+    return json_({ ok: false, error: String(err), stack: (err.stack || '').toString().substring(0, 800) });
   }
 }
 
@@ -84,19 +126,71 @@ function json_(obj) {
 // 認證
 // ============================================================
 function handleLogin_(body) {
-  const props = PropertiesService.getScriptProperties();
-  const u = props.getProperty("AUTH_USERNAME");
-  const h = props.getProperty("AUTH_PASSWORD_HASH");
-  if (!u || !h) return { ok: false, error: "後台尚未設定帳密 (檢查指令碼屬性)" };
-  if (body.username !== u) return { ok: false, error: "帳號或密碼錯誤" };
-  if (sha256_(body.password || "") !== h) return { ok: false, error: "帳號或密碼錯誤" };
-  return { ok: true, token: signToken_(u), username: u };
+  const user = findUser_(String(body.username || ""));
+  if (!user) return { ok: false, error: "帳號或密碼錯誤" };
+  if (sha256_(body.password || "") !== user.h) return { ok: false, error: "帳號或密碼錯誤" };
+  return { ok: true, token: signToken_(user.u), username: user.u };
 }
 
 function handleChangePassword_(body) {
   const newPwd = String(body.newPassword || "");
   if (newPwd.length < 8) return { ok: false, error: "密碼至少 8 字元" };
-  PropertiesService.getScriptProperties().setProperty("AUTH_PASSWORD_HASH", sha256_(newPwd));
+  const myUsername = getTokenUsername_(body.token);
+  if (!myUsername) return { ok: false, error: "尚未登入" };
+  const users = getUsers_();
+  const idx = users.findIndex(u => u.u === myUsername);
+  if (idx < 0) return { ok: false, error: "找不到使用者" };
+  users[idx].h = sha256_(newPwd);
+  setUsers_(users);
+  return { ok: true };
+}
+
+function handleRenameSelf_(body) {
+  const newUsername = String(body.newUsername || "").trim();
+  if (!/^[a-zA-Z0-9_-]{3,30}$/.test(newUsername)) {
+    return { ok: false, error: "帳號需 3~30 字元，限英數、底線、連字號" };
+  }
+  const myUsername = getTokenUsername_(body.token);
+  if (!myUsername) return { ok: false, error: "尚未登入" };
+  if (newUsername === myUsername) return { ok: true, username: newUsername, token: body.token };
+  const users = getUsers_();
+  if (users.find(u => u.u === newUsername)) return { ok: false, error: "帳號已存在" };
+  const idx = users.findIndex(u => u.u === myUsername);
+  if (idx < 0) return { ok: false, error: "找不到使用者" };
+  users[idx].u = newUsername;
+  setUsers_(users);
+  // 重新發 token
+  return { ok: true, username: newUsername, token: signToken_(newUsername) };
+}
+
+function handleListUsers_(body) {
+  const me = getTokenUsername_(body.token);
+  return { ok: true, me: me, users: getUsers_().map(u => u.u) };
+}
+
+function handleAddUser_(body) {
+  const username = String(body.username || "").trim();
+  const password = String(body.password || "");
+  if (!/^[a-zA-Z0-9_-]{3,30}$/.test(username)) {
+    return { ok: false, error: "帳號需 3~30 字元，限英數、底線、連字號" };
+  }
+  if (password.length < 8) return { ok: false, error: "密碼至少 8 字元" };
+  const users = getUsers_();
+  if (users.find(u => u.u === username)) return { ok: false, error: "帳號已存在" };
+  users.push({ u: username, h: sha256_(password) });
+  setUsers_(users);
+  return { ok: true };
+}
+
+function handleRemoveUser_(body) {
+  const target = String(body.username || "");
+  const me = getTokenUsername_(body.token);
+  if (!me) return { ok: false, error: "尚未登入" };
+  if (target === me) return { ok: false, error: "不能刪除自己 (請先登出讓別的管理員操作)" };
+  let users = getUsers_();
+  if (users.length <= 1) return { ok: false, error: "至少要保留一位管理員" };
+  users = users.filter(u => u.u !== target);
+  setUsers_(users);
   return { ok: true };
 }
 
@@ -159,7 +253,12 @@ function handleList_() {
   const rows = [];
   for (let i = 1; i < range.length; i++) {
     const obj = { _row: i + 1 };
-    headers.forEach((h, j) => { obj[h] = range[i][j]; });
+    headers.forEach((h, j) => {
+      let v = range[i][j];
+      if (v instanceof Date) v = v.toISOString();
+      else if (v && typeof v === 'object') v = String(v);  // 防止其他特殊物件
+      obj[h] = v;
+    });
     if (obj.id !== "" && obj.id !== null && obj.id !== undefined) rows.push(obj);
   }
   return { ok: true, headers, rows };

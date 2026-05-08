@@ -418,6 +418,55 @@ input, textarea, select { font-family: inherit; }
   margin-top: 20px;
 }
 
+/* ---------- 管理員列表 ---------- */
+.users-list {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.user-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.user-row:last-child { border-bottom: 0; }
+.user-row .user-name {
+  flex: 1;
+  font-weight: 600;
+}
+.user-row .user-tag {
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-left: 8px;
+}
+.user-row .user-del {
+  background: transparent;
+  border: 1px solid #f0c0c0;
+  color: #c33;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.user-row .user-del:hover { background: #fff0f0; }
+.user-row .user-del:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.users-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 /* ---------- Toast ---------- */
 .toast {
   position: fixed;
