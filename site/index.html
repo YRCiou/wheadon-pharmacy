@@ -14,6 +14,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <title>惠登藥局 Wheadon Pharmacy｜商品查詢</title>
 <meta name="description" content="惠登藥局商品查詢，依藥品或症狀搜尋。地址：台中市北屯區昌平路一段434號。電話：(04)2422-5682。" />
 
+<!-- Canonical & hreflang -->
+<link rel="canonical" href="https://wheadon-pharmacy.pages.dev/" />
+<link rel="alternate" hreflang="zh-Hant-TW" href="https://wheadon-pharmacy.pages.dev/" />
+<link rel="alternate" hreflang="x-default" href="https://wheadon-pharmacy.pages.dev/" />
+
 <!-- favicon -->
 <link rel="icon" type="image/png" href="/favicon.png" />
 <link rel="apple-touch-icon" href="/favicon.png" />
@@ -37,7 +42,42 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/style.css?v=9" />
+<link rel="stylesheet" href="css/style.css?v=10" />
+
+<!-- Structured data: LocalBusiness / Pharmacy -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Pharmacy",
+  "name": "惠登藥局 Wheadon Pharmacy",
+  "url": "https://wheadon-pharmacy.pages.dev/",
+  "image": "https://wheadon-pharmacy.pages.dev/banner.png",
+  "telephone": "+886-4-2422-5682",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "昌平路一段434號",
+    "addressLocality": "台中市",
+    "addressRegion": "北屯區",
+    "postalCode": "406",
+    "addressCountry": "TW"
+  },
+  "openingHoursSpecification": [
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday"
+      ],
+      "opens": "09:00",
+      "closes": "21:00"
+    }
+  ]
+}
+</script>
 </head>
 <body>
 <!-- Google Tag Manager (noscript) -->
@@ -65,10 +105,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </header>
 
 <div id="siteBanner" class="site-banner">
-  <img src="/banner.png" alt="惠登藥局 Wheadon Pharmacy・健康的一盞燈，照亮每一天" />
+  <img src="/banner.png" width="1983" height="793" fetchpriority="high"
+       alt="惠登藥局 Wheadon Pharmacy・健康的一盞燈，照亮每一天" />
 </div>
 
 <main class="site-main">
+  <h1 class="visually-hidden">惠登藥局｜台中北屯藥品查詢</h1>
+  <h2 class="visually-hidden">熱賣與精選商品</h2>
   <div id="status" class="status" aria-live="polite">載入中…</div>
   <div id="gallery" class="gallery" hidden></div>
   <div id="empty" class="empty" hidden>
@@ -81,7 +124,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <div class="modal-card">
     <button class="modal-close" type="button" data-close aria-label="關閉">×</button>
     <div class="modal-image-wrap">
-      <img id="modalImage" alt="" />
+      <img id="modalImage" alt="" width="1080" height="1080" />
       <div id="modalOverlay"></div>
     </div>
     <div class="modal-body">
@@ -115,6 +158,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="footer-block">
       <h3>聯絡我們</h3>
       <p>📍 <a href="https://www.google.com/maps/search/?api=1&query=406臺中市北屯區平順里昌平路一段434號" target="_blank" rel="noopener">406 臺中市北屯區平順里昌平路一段434號</a></p>
+      <p>☎️ <a href="tel:+886424225682">(04) 2422-5682</a></p>
+      <p>🕘 營業時間：週一～週六 09:00–21:00</p>
       <p>📷 <a href="https://www.instagram.com/wheadonpharmacy/" target="_blank" rel="noopener">@wheadonpharmacy</a></p>
     </div>
     <div class="footer-block">

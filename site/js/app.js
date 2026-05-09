@@ -31,6 +31,103 @@
 
   els.year.textContent = new Date().getFullYear();
 
+  // -------------------------------------------------- SEO meta：商品 modal 動態切換
+  const SITE_ORIGIN = "https://wheadon-pharmacy.pages.dev";
+
+  function getMeta(selector) {
+    return document.head.querySelector(selector);
+  }
+  function ensureMeta(selector, attrName, attrValue) {
+    let el = getMeta(selector);
+    if (!el) {
+      el = document.createElement("meta");
+      el.setAttribute(attrName, attrValue);
+      document.head.appendChild(el);
+    }
+    return el;
+  }
+  function ensureLink(rel) {
+    let el = document.head.querySelector(`link[rel="${rel}"]`);
+    if (!el) {
+      el = document.createElement("link");
+      el.setAttribute("rel", rel);
+      document.head.appendChild(el);
+    }
+    return el;
+  }
+
+  const seoEls = {
+    title: document.querySelector("title"),
+    description: ensureMeta('meta[name="description"]', "name", "description"),
+    ogTitle: ensureMeta('meta[property="og:title"]', "property", "og:title"),
+    ogDescription: ensureMeta('meta[property="og:description"]', "property", "og:description"),
+    ogImage: ensureMeta('meta[property="og:image"]', "property", "og:image"),
+    ogUrl: ensureMeta('meta[property="og:url"]', "property", "og:url"),
+    twTitle: getMeta('meta[name="twitter:title"]'),
+    twDescription: getMeta('meta[name="twitter:description"]'),
+    twImage: getMeta('meta[name="twitter:image"]'),
+    canonical: ensureLink("canonical"),
+  };
+  // 儲存首頁預設 meta，關閉 modal 時還原
+  const seoDefaults = {
+    title: seoEls.title ? seoEls.title.textContent : "",
+    description: seoEls.description.getAttribute("content") || "",
+    ogTitle: seoEls.ogTitle.getAttribute("content") || "",
+    ogDescription: seoEls.ogDescription.getAttribute("content") || "",
+    ogImage: seoEls.ogImage.getAttribute("content") || "",
+    ogUrl: seoEls.ogUrl.getAttribute("content") || `${SITE_ORIGIN}/`,
+    twTitle: seoEls.twTitle ? seoEls.twTitle.getAttribute("content") || "" : "",
+    twDescription: seoEls.twDescription ? seoEls.twDescription.getAttribute("content") || "" : "",
+    twImage: seoEls.twImage ? seoEls.twImage.getAttribute("content") || "" : "",
+    canonical: seoEls.canonical.getAttribute("href") || `${SITE_ORIGIN}/`,
+  };
+
+  function absoluteImageUrl(src) {
+    if (!src) return seoDefaults.ogImage;
+    if (/^https?:\/\//i.test(src)) return src;
+    return `${SITE_ORIGIN}/${src.replace(/^\//, "")}`;
+  }
+
+  function shortDescription(item) {
+    const raw = (item.usage || item.caption || "").toString();
+    // 取前 100 字、移除多餘空白
+    const trimmed = raw.replace(/\s+/g, " ").trim();
+    if (!trimmed) return seoDefaults.description;
+    return trimmed.length > 100 ? trimmed.slice(0, 100) + "…" : trimmed;
+  }
+
+  function updateSEOForItem(item) {
+    const title = `${item.title} ｜ 惠登藥局`;
+    const desc = shortDescription(item);
+    const img = absoluteImageUrl(item.images && item.images[0]);
+    const url = item.serial
+      ? `${SITE_ORIGIN}/products/${item.serial}`
+      : seoDefaults.canonical;
+    if (seoEls.title) seoEls.title.textContent = title;
+    seoEls.description.setAttribute("content", desc);
+    seoEls.ogTitle.setAttribute("content", title);
+    seoEls.ogDescription.setAttribute("content", desc);
+    seoEls.ogImage.setAttribute("content", img);
+    seoEls.ogUrl.setAttribute("content", url);
+    if (seoEls.twTitle) seoEls.twTitle.setAttribute("content", title);
+    if (seoEls.twDescription) seoEls.twDescription.setAttribute("content", desc);
+    if (seoEls.twImage) seoEls.twImage.setAttribute("content", img);
+    seoEls.canonical.setAttribute("href", url);
+  }
+
+  function resetSEOToDefaults() {
+    if (seoEls.title) seoEls.title.textContent = seoDefaults.title;
+    seoEls.description.setAttribute("content", seoDefaults.description);
+    seoEls.ogTitle.setAttribute("content", seoDefaults.ogTitle);
+    seoEls.ogDescription.setAttribute("content", seoDefaults.ogDescription);
+    seoEls.ogImage.setAttribute("content", seoDefaults.ogImage);
+    seoEls.ogUrl.setAttribute("content", seoDefaults.ogUrl);
+    if (seoEls.twTitle) seoEls.twTitle.setAttribute("content", seoDefaults.twTitle);
+    if (seoEls.twDescription) seoEls.twDescription.setAttribute("content", seoDefaults.twDescription);
+    if (seoEls.twImage) seoEls.twImage.setAttribute("content", seoDefaults.twImage);
+    seoEls.canonical.setAttribute("href", seoDefaults.canonical);
+  }
+
   // -------------------------------------------------- helpers
   const truthy = (v) => {
     if (v === undefined || v === null) return false;
@@ -298,7 +395,7 @@
     const cover = item.images[0] || "";
     card.innerHTML = `
       <div class="card-image-wrap">
-        <img loading="lazy" src="${escapeHTML(cover)}" alt="${escapeHTML(item.title)}" />
+        <img loading="lazy" width="1080" height="1080" src="${escapeHTML(cover)}" alt="${escapeHTML(item.title)}" />
         ${overlayHTML(item)}
       </div>
       <div class="card-body">
@@ -376,6 +473,9 @@
       }
     }
 
+    // 更新 SEO meta（title / description / og / canonical）
+    updateSEOForItem(item);
+
     document.body.style.overflow = "hidden";
   }
 
@@ -386,6 +486,8 @@
     if (updateURL && location.pathname.startsWith("/products/")) {
       history.pushState({}, "", "/");
     }
+    // 還原首頁的 SEO meta
+    resetSEOToDefaults();
   }
 
   els.modal.addEventListener("click", (e) => {

@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /ruthie/
+
+Sitemap: https://wheadon-pharmacy.pages.dev/sitemap.xml

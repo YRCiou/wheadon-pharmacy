@@ -18,6 +18,8 @@ SITE = ROOT / "site"
 IMG_OUT = SITE / "images"
 DATA_OUT = SITE / "data"
 
+SITE_BASE_URL = "https://wheadon-pharmacy.pages.dev"
+
 IMG_OUT.mkdir(parents=True, exist_ok=True)
 DATA_OUT.mkdir(parents=True, exist_ok=True)
 
@@ -113,6 +115,49 @@ def process():
     )
     print(f"Wrote {len(out)} posts to data/posts.json")
     print(f"Copied images into {IMG_OUT}")
+
+    write_sitemap(out)
+
+
+def write_sitemap(posts):
+    """Generate site/sitemap.xml — homepage + every product page (/products/{serial})."""
+    today = ""
+    try:
+        from datetime import date
+        today = date.today().isoformat()
+    except Exception:
+        pass
+
+    def fmt_date(d: str) -> str:
+        # posts.json date is "YYYY-MM-DD HH:MM:SS"; sitemap accepts ISO date
+        if not d:
+            return today
+        return d.split(" ")[0]
+
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+        '  <url>',
+        f'    <loc>{SITE_BASE_URL}/</loc>',
+        f'    <lastmod>{today}</lastmod>',
+        '    <changefreq>weekly</changefreq>',
+        '    <priority>1.0</priority>',
+        '  </url>',
+    ]
+    # Serial numbering matches frontend: posts ordered by date desc -> serial 1..N
+    for serial, p in enumerate(posts, start=1):
+        lastmod = fmt_date(p.get("date", ""))
+        lines.extend([
+            '  <url>',
+            f'    <loc>{SITE_BASE_URL}/products/{serial}</loc>',
+            f'    <lastmod>{lastmod}</lastmod>',
+            '    <changefreq>monthly</changefreq>',
+            '    <priority>0.8</priority>',
+            '  </url>',
+        ])
+    lines.append('</urlset>')
+    SITE.joinpath("sitemap.xml").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"Wrote sitemap.xml with {len(posts) + 1} URLs")
 
 
 if __name__ == "__main__":
