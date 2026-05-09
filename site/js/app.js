@@ -497,4 +497,29 @@
   });
 
   init();
+
+  // -------------------------------------------------- 浮動 CTA：依滾動方向顯隱
+  const cta = $("#floatingCta");
+  if (cta) {
+    let lastY = window.scrollY || 0;
+    let ticking = false;
+    const TH = 6;   // 死區，避免微小晃動誤觸發
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        if (y < 80) {
+          cta.classList.remove("is-hidden");          // 接近頂端永遠顯示
+        } else if (y > lastY + TH) {
+          cta.classList.add("is-hidden");             // 往下滾 → 藏
+        } else if (y < lastY - TH) {
+          cta.classList.remove("is-hidden");          // 往上滾 → 顯示
+        }
+        lastY = y;
+        ticking = false;
+      });
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+  }
 })();
