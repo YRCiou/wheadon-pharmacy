@@ -527,6 +527,15 @@ a:hover { text-decoration: underline; }
 }
 .footer-block p { margin: 8px 0; font-size: 17px; line-height: 1.7; }
 .footer-block a { color: #b8e2cb; }
+.contact-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.18em;
+  margin-right: 4px;
+}
+.icon-ig   { color: #e1306c; }
+.icon-line { color: #06c755; }
 .footer-bottom {
   max-width: 1200px;
   margin: 28px auto 0;
