@@ -30,6 +30,19 @@ a { color: var(--brand); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 /* ---------- Header ---------- */
+.site-banner {
+  width: 100%;
+  background: #f7f4ec;
+  text-align: center;
+}
+.site-banner img {
+  display: block;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 1200px;
+  height: auto;
+}
+
 .site-header {
   position: sticky;
   top: 0;
