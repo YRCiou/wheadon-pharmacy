@@ -439,10 +439,30 @@ a:hover { text-decoration: underline; }
 }
 .modal-ig {
   display: inline-block;
-  margin-top: 12px;
   font-size: 17px;
   font-weight: 600;
 }
+.modal-foot {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.modal-share {
+  font-family: inherit;
+  background: var(--brand);
+  color: white;
+  border: 0;
+  padding: 9px 16px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.modal-share:hover { background: #245741; }
 
 /* ---------- Footer ---------- */
 .site-footer {

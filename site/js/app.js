@@ -131,6 +131,7 @@
       indexOf[canon] = idx; // -1 if missing
     }
     const out = [];
+    let serial = 0;
     for (let r = 1; r < rows.length; r++) {
       const row = rows[r];
       const get = (key) => {
@@ -139,8 +140,10 @@
       };
       const id = get("id");
       if (!id) continue;
+      serial++;   // 每筆商品的流水編號（試算表 row 順序）
       out.push({
         id,
+        serial,
         shortcode: get("shortcode"),
         name: get("name"),
         keywords: get("keywords"),
@@ -188,6 +191,7 @@
       if (s.id) usedSheetIds.add(s.id);
       return {
         id: p.id,
+        serial: s.serial,
         shortcode: p.shortcode || s.shortcode || "",
         title: s.name || p.title || "(未命名商品)",
         caption: p.caption || "",
@@ -212,6 +216,7 @@
       if (!s.image) continue;
       merged.unshift({   // 放在最前面，新商品比較顯眼
         id: s.id,
+        serial: s.serial,
         shortcode: s.shortcode || "",
         title: s.name || "(未命名商品)",
         caption: "",
@@ -324,7 +329,10 @@
   }
 
   // -------------------------------------------------- modal
-  function openModal(item) {
+  let currentModalItem = null;
+
+  function openModal(item, updateURL = true) {
+    currentModalItem = item;
     els.modal.hidden = false;
     els.modal.classList.toggle("is-sold", item.soldOut);
     els.modalImage.src = item.images[0] || "";
@@ -355,12 +363,29 @@
       els.modalIgLink.hidden = true;
     }
     els.modalOverlay.innerHTML = overlayHTML(item);
+
+    // 分享按鈕：只在有 serial 時可用
+    const shareBtn = $("#modalShareBtn");
+    if (shareBtn) shareBtn.hidden = !item.serial;
+
+    // 改網址成 /products/{serial}
+    if (updateURL && item.serial) {
+      const newPath = `/products/${item.serial}`;
+      if (location.pathname !== newPath) {
+        history.pushState({ serial: item.serial }, "", newPath);
+      }
+    }
+
     document.body.style.overflow = "hidden";
   }
 
-  function closeModal() {
+  function closeModal(updateURL = true) {
     els.modal.hidden = true;
+    currentModalItem = null;
     document.body.style.overflow = "";
+    if (updateURL && location.pathname.startsWith("/products/")) {
+      history.pushState({}, "", "/");
+    }
   }
 
   els.modal.addEventListener("click", (e) => {
@@ -369,6 +394,28 @@
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !els.modal.hidden) closeModal();
   });
+
+  // 瀏覽器上一頁/下一頁 → 對應開關 modal
+  window.addEventListener("popstate", () => {
+    routeFromURL(false);
+  });
+
+  // 從目前網址判斷該開哪個商品的 modal（或關閉）
+  function routeFromURL(updateURL = true) {
+    const m = location.pathname.match(/^\/products\/(\d+)\/?$/);
+    if (!m) {
+      if (!els.modal.hidden) closeModal(false);
+      return;
+    }
+    const serial = Number(m[1]);
+    const item = allItems.find((i) => i.serial === serial && !i.hide);
+    if (item) {
+      openModal(item, updateURL);
+    } else {
+      // 找不到就關 modal、保留路徑（避免使用者誤以為連結壞了）
+      if (!els.modal.hidden) closeModal(false);
+    }
+  }
 
   // -------------------------------------------------- search
   function buildSearchString(item) {
@@ -420,11 +467,34 @@
       }));
       els.status.hidden = true;
       rerender();
+      // 如果網址是 /products/N，開對應的 modal
+      routeFromURL(false);
     } catch (e) {
       console.error(e);
       els.status.textContent = "資料載入失敗：" + e.message;
     }
   }
+
+  // 分享按鈕：複製目前網址
+  document.addEventListener("click", (e) => {
+    if (e.target && e.target.id === "modalShareBtn") {
+      const url = location.origin + location.pathname;
+      const ok = (msg) => {
+        e.target.textContent = msg;
+        setTimeout(() => { e.target.textContent = "🔗 複製連結"; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(() => ok("✓ 已複製"));
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); ok("✓ 已複製"); } catch (e) {}
+        ta.remove();
+      }
+    }
+  });
 
   init();
 })();

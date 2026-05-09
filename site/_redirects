@@ -1,0 +1,4 @@
+# Cloudflare Pages SPA fallback
+# 任何 /products/xxx 直接打開，伺服器都回 /index.html
+# 由前端 JS 解析網址並開對應商品 modal
+/products/*  /index.html  200
