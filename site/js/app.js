@@ -483,6 +483,13 @@
         e.target.textContent = msg;
         setTimeout(() => { e.target.textContent = "🔗 複製連結"; }, 1500);
       };
+      if (window.dataLayer) {
+        window.dataLayer.push({
+          event: "copy_product_link",
+          page_path: location.pathname,
+          page_url: url,
+        });
+      }
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(() => ok("✓ 已複製"));
       } else {
