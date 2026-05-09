@@ -33,14 +33,28 @@ a:hover { text-decoration: underline; }
 .site-banner {
   width: 100%;
   background: #f7f4ec;
-  text-align: center;
+  height: 200px;
+  max-height: 200px;
+  overflow: hidden;
+  opacity: 1;
+  transition: max-height .28s ease, opacity .2s ease;
+  will-change: max-height, opacity;
 }
 .site-banner img {
   display: block;
-  margin: 0 auto;
   width: 100%;
-  max-width: 1200px;
-  height: auto;
+  height: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  object-fit: cover;
+  object-position: center;
+}
+.site-banner.is-hidden {
+  max-height: 0;
+  opacity: 0;
+}
+@media (max-width: 600px) {
+  .site-banner { height: 110px; max-height: 110px; }
 }
 
 .site-header {

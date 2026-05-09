@@ -529,4 +529,20 @@
     }
     window.addEventListener("scroll", onScroll, { passive: true });
   }
+
+  // -------------------------------------------------- 首頁 banner：下滾即淡出+收合
+  const banner = $("#siteBanner");
+  if (banner) {
+    let bTicking = false;
+    function onBannerScroll() {
+      if (bTicking) return;
+      bTicking = true;
+      requestAnimationFrame(() => {
+        if (window.scrollY > 24) banner.classList.add("is-hidden");
+        else banner.classList.remove("is-hidden");
+        bTicking = false;
+      });
+    }
+    window.addEventListener("scroll", onBannerScroll, { passive: true });
+  }
 })();
