@@ -343,9 +343,7 @@ function handleImportFromIg_(body) {
     || html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
   let caption = "";
   if (ogDescMatch) {
-    caption = ogDescMatch[1]
-      .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
-      .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+    caption = decodeHtmlEntities_(ogDescMatch[1]);
     // og:description 通常是  '@account on Instagram: "actual caption"'
     const innerMatch = caption.match(/:\s*"(.+)"/s);
     if (innerMatch) caption = innerMatch[1];
@@ -482,6 +480,21 @@ function handleUploadImage_(body) {
 // ============================================================
 // 工具函式
 // ============================================================
+// 把 HTML 實體解回字元（IG 的中文都是 &#x5b89; 這種 hex 數字實體）
+function decodeHtmlEntities_(str) {
+  if (!str) return "";
+  return str
+    .replace(/&#x([0-9a-fA-F]+);/g, function(_, h) { return String.fromCodePoint(parseInt(h, 16)); })
+    .replace(/&#(\d+);/g, function(_, d) { return String.fromCodePoint(parseInt(d, 10)); })
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&");   // & 放最後，避免被前面的 &xxx 重複解
+}
+
 function sha256_(text) {
   const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, text, Utilities.Charset.UTF_8);
   return bytes.map(b => ((b < 0 ? b + 256 : b)).toString(16).padStart(2, "0")).join("");
