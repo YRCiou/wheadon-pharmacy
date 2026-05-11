@@ -214,11 +214,24 @@ def process():
 
     # Sort newest first
     out = sorted(posts.values(), key=lambda p: p["date"], reverse=True)
-    DATA_OUT.joinpath("posts.json").write_text(
-        json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    print(f"Wrote {len(out)} posts to data/posts.json")
-    print(f"Copied images into {IMG_OUT}")
+
+    # ⚠️ 若沒有 ig_raw（例如 GitHub Actions 環境）→ 不要 overwrite，
+    # 改讀現有 posts.json 當輸入。否則 IG 資料會被清空 → 前台空白。
+    posts_json_path = DATA_OUT.joinpath("posts.json")
+    if not out and posts_json_path.exists():
+        try:
+            existing = json.loads(posts_json_path.read_text(encoding="utf-8"))
+            if isinstance(existing, list) and len(existing) > 0:
+                print(f"⚠️  ig_raw/ 沒有資料，保留現有 posts.json ({len(existing)} 筆)")
+                out = existing
+        except Exception as e:
+            print(f"無法讀現有 posts.json：{e}")
+    else:
+        posts_json_path.write_text(
+            json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        print(f"Wrote {len(out)} posts to data/posts.json")
+        print(f"Copied images into {IMG_OUT}")
 
     # 合併 IG 文字資料 (posts.json) + 試算表動態資料 (價格、熱賣、隱藏...)
     sheet_rows = []
