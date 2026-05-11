@@ -16,7 +16,7 @@
  *      取得網址後告訴我
  * ============================================================ */
 
-const SHEET_ID = "REPLACE_WITH_YOUR_SHEET_ID";
+const SHEET_ID = "19LmH7o8m45BaROIJGXCfdriqv6wvzoBqAtJw6a1LHo0";
 const SHEET_NAME = "";   // 留空表示用第一個分頁
 const REPO_OWNER = "YRCiou";
 const REPO_NAME  = "wheadon-pharmacy";
