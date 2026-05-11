@@ -540,6 +540,68 @@
       .toLowerCase();
   }
 
+  // Levenshtein 編輯距離（用於模糊搜尋打錯字容忍）
+  function levenshtein(a, b) {
+    if (a === b) return 0;
+    const al = a.length, bl = b.length;
+    if (!al) return bl;
+    if (!bl) return al;
+    let prev = new Array(bl + 1);
+    let curr = new Array(bl + 1);
+    for (let j = 0; j <= bl; j++) prev[j] = j;
+    for (let i = 1; i <= al; i++) {
+      curr[0] = i;
+      const ac = a.charCodeAt(i - 1);
+      for (let j = 1; j <= bl; j++) {
+        const cost = ac === b.charCodeAt(j - 1) ? 0 : 1;
+        curr[j] = Math.min(
+          curr[j - 1] + 1,
+          prev[j] + 1,
+          prev[j - 1] + cost
+        );
+      }
+      const tmp = prev; prev = curr; curr = tmp;
+    }
+    return prev[bl];
+  }
+
+  // 在 hay 中尋找最接近 token 的子字串，回傳最小編輯距離
+  function bestSubstringDist(hay, token, maxDist) {
+    const tl = token.length;
+    if (tl === 0) return 0;
+    if (hay.includes(token)) return 0;
+    let best = Infinity;
+    const minLen = Math.max(1, tl - maxDist);
+    const maxLen = tl + maxDist;
+    const hl = hay.length;
+    for (let len = minLen; len <= maxLen; len++) {
+      for (let i = 0; i + len <= hl; i++) {
+        const d = levenshtein(hay.substr(i, len), token);
+        if (d < best) {
+          best = d;
+          if (best === 0) return 0;
+        }
+      }
+    }
+    return best;
+  }
+
+  // 每個 token 容許的最大編輯距離（依長度動態決定）
+  function fuzzyTolerance(token) {
+    const len = token.length;
+    if (len <= 2) return 0;  // 太短：要求完整命中，避免誤判
+    if (len <= 4) return 1;
+    if (len <= 7) return 2;
+    return 2;
+  }
+
+  function tokenMatches(hay, token) {
+    if (hay.includes(token)) return true;
+    const tol = fuzzyTolerance(token);
+    if (tol === 0) return false;
+    return bestSubstringDist(hay, token, tol) <= tol;
+  }
+
   function applyFilter(allItems, query) {
     const q = query.trim().toLowerCase();
     if (!q) return allItems.filter((i) => !i.hide);
@@ -547,7 +609,7 @@
     return allItems.filter((i) => {
       if (i.hide) return false;
       const hay = i._search;
-      return tokens.every((t) => hay.includes(t));
+      return tokens.every((t) => tokenMatches(hay, t));
     });
   }
 
@@ -641,7 +703,7 @@
   init();
 
   // -------------------------------------------------- 浮動 CTA：依滾動方向顯隱
-  const cta = $("#floatingCta");
+  const cta = $("#floatingCtaGroup") || $("#floatingCta");
   if (cta) {
     let lastY = window.scrollY || 0;
     let ticking = false;

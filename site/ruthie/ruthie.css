@@ -500,3 +500,32 @@ input, textarea, select { font-family: inherit; }
   .thumb, .thumb-wrap { width: 44px; height: 44px; }
   .grid-2 { grid-template-columns: 1fr; }
 }
+
+/* ---------- Skeleton loading ---------- */
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 10px 0;
+}
+.skeleton-row {
+  height: 56px;
+  border-radius: 8px;
+  background: #efe9df;
+  background-image: linear-gradient(
+    90deg,
+    #efe9df 0%,
+    #f7f1e7 50%,
+    #efe9df 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.skeleton-row.narrow { height: 36px; }
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-row { animation: none; }
+}

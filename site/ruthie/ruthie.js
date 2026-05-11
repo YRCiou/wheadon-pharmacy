@@ -101,7 +101,10 @@
     const status = $("#manageStatus");
     const wrap = $("#tableWrap");
     status.hidden = false;
-    status.textContent = "載入中…";
+    status.innerHTML = ''
+      + '<div class="skeleton-list" aria-label="載入中">'
+      +   '<div class="skeleton-row"></div>'.repeat(6)
+      + '</div>';
     wrap.hidden = true;
     try {
       const r = await api("list");
@@ -547,7 +550,10 @@
 
   async function loadUsers() {
     const wrap = $("#usersList");
-    wrap.textContent = "載入中…";
+    wrap.innerHTML = ''
+      + '<div class="skeleton-list" aria-label="載入中">'
+      +   '<div class="skeleton-row narrow"></div>'.repeat(3)
+      + '</div>';
     try {
       const r = await api("listUsers");
       wrap.textContent = "";
