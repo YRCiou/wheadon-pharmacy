@@ -91,6 +91,7 @@ def fetch_sheet_rows(url: str):
         "usage": ["usage", "適用性", "適用範圍", "適應症"],
         "hide": ["hide", "隱藏", "不顯示"],
         "image": ["image", "圖片", "圖片網址", "image_url"],
+        "caption": ["caption", "_caption_預覽", "_caption", "說明", "IG說明"],
     }
     idx = {}
     for canon, names in aliases.items():
@@ -124,6 +125,7 @@ def fetch_sheet_rows(url: str):
             "usage": get("usage"),
             "hide": truthy(get("hide")),
             "image": get("image"),
+            "caption": get("caption"),
         })
     return out
 
@@ -343,7 +345,7 @@ def merge_products(posts, sheet_rows):
             "serial": s["serial"],
             "shortcode": s.get("shortcode", ""),
             "title": s.get("name") or "(未命名商品)",
-            "caption": "",
+            "caption": s.get("caption", "") or "",
             "keywords": s.get("keywords", ""),
             "priceOriginal": s.get("priceOriginal"),
             "priceSale": s.get("priceSale"),
