@@ -105,6 +105,7 @@ function doPost(e) {
     if (action === "add")            return json_(handleAdd_(body));
     if (action === "uploadImage")    return json_(handleUploadImage_(body));
     if (action === "importFromIg")   return json_(handleImportFromIg_(body));
+    if (action === "delete")         return json_(handleDelete_(body));
     if (action === "republish")      return json_(handleRepublish_(body));
     if (action === "changePassword") return json_(handleChangePassword_(body));
     if (action === "renameSelf")     return json_(handleRenameSelf_(body));
@@ -291,6 +292,18 @@ function handleAdd_(body) {
   const row = headers.map(h => fields[h] !== undefined ? fields[h] : "");
   sheet.appendRow(row);
   return { ok: true, row: sheet.getLastRow() };
+}
+
+// ============================================================
+// 刪除商品（整列從試算表移除）
+// ============================================================
+function handleDelete_(body) {
+  const row = Number(body.row);
+  if (!row || row < 2) return { ok: false, error: "Invalid row: " + body.row };
+  const sheet = getSheet_();
+  if (row > sheet.getLastRow()) return { ok: false, error: "列號超過範圍" };
+  sheet.deleteRow(row);
+  return { ok: true };
 }
 
 // ============================================================

@@ -218,14 +218,29 @@
       const tdSold = mkCb(row._row, "完售", sold);
       const tdHide = mkCb(row._row, "隱藏", hide);
 
-      // edit
+      // edit + delete
       const tdEdit = document.createElement("td");
       tdEdit.className = "action";
       const editBtn = document.createElement("button");
       editBtn.className = "edit-btn";
       editBtn.textContent = "編輯";
       editBtn.onclick = () => openEditModal(row);
-      tdEdit.append(editBtn);
+      const delBtn = document.createElement("button");
+      delBtn.className = "edit-btn del-btn";
+      delBtn.textContent = "刪除";
+      delBtn.onclick = async () => {
+        if (!confirm(`確定刪除「${name}」？\n\n⚠️ 整列會從試算表移除，且後續商品的流水編號會往前遞補。已經分享出去的舊網址會指到不同的商品。`)) return;
+        delBtn.disabled = true;
+        try {
+          await api("delete", { row: row._row });
+          toast("✓ 已刪除「" + name + "」");
+          await loadList();
+        } catch (e) {
+          toast("刪除失敗：" + e.message, true);
+          delBtn.disabled = false;
+        }
+      };
+      tdEdit.append(editBtn, delBtn);
 
       tr.append(tdImg, tdName, tdOrig, tdSale, tdQty, tdConsult, tdHot, tdSold, tdHide, tdEdit);
       tbody.append(tr);

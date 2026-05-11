@@ -245,6 +245,10 @@ input, textarea, select { font-family: inherit; }
   font-size: 13px;
 }
 .edit-btn:hover { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); }
+.del-btn { margin-left: 4px; }
+.del-btn:hover { background: #fff0f0; border-color: #c33; color: #c33; }
+.del-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+#prodTable th.action, #prodTable td.action { width: auto; min-width: 110px; white-space: nowrap; }
 
 .qty-warn { color: var(--warn); font-weight: 700; }
 .price-orig { color: var(--ink-soft); }
