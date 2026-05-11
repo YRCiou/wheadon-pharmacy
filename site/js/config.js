@@ -19,7 +19,7 @@ window.SITE_CONFIG = {
   SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT7L3_gOGBYqghZt1UKw9uHDN-uIPRp7_5qAMEHrbL7NdhxH1eq7-uKd23qfGMT2hOT37z_Dntjn8uR/pub?gid=895735424&single=true&output=csv",
 
   // 圖片清單檔（由 build_data.py 產生）
-  POSTS_JSON_URL: "data/posts.json",
+  POSTS_JSON_URL: "/data/posts.json",
 
   // 自訂顯示名稱
   PHARMACY_NAME_ZH: "惠登藥局",

@@ -117,6 +117,7 @@ def process():
     print(f"Copied images into {IMG_OUT}")
 
     write_sitemap(out)
+    write_product_pages(out)
 
 
 def write_sitemap(posts):
@@ -158,6 +159,97 @@ def write_sitemap(posts):
     lines.append('</urlset>')
     SITE.joinpath("sitemap.xml").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"Wrote sitemap.xml with {len(posts) + 1} URLs")
+
+
+def html_escape(s: str) -> str:
+    return (
+        (s or "")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#39;")
+    )
+
+
+def write_product_pages(posts):
+    """
+    為每個商品產生 /products/{serial}/index.html，含獨立的 OG meta。
+    社群分享預覽 (LINE/FB/Telegram) 就會看到對的圖跟標題。
+
+    流水號 = 在前端顯示順序 (newest first)，從 1 開始。
+    """
+    import re
+
+    template_path = SITE / "index.html"
+    template = template_path.read_text(encoding="utf-8")
+
+    products_root = SITE / "products"
+    products_root.mkdir(parents=True, exist_ok=True)
+
+    # 清掉舊的 (避免有殘留的 serial 過期頁面)
+    for sub in products_root.iterdir():
+        if sub.is_dir() and sub.name.isdigit():
+            for f in sub.iterdir():
+                f.unlink()
+            sub.rmdir()
+
+    for serial, p in enumerate(posts, start=1):
+        title_raw = (p.get("title") or "未命名商品").strip()
+        page_title = f"{title_raw}｜惠登藥局 Wheadon Pharmacy"
+        caption = " ".join((p.get("caption") or "").split())
+        if len(caption) > 160:
+            caption = caption[:160] + "…"
+        if not caption:
+            caption = "惠登藥局商品"
+        first_image = (p.get("images") or [None])[0] or "banner.png"
+        image_url = f"{SITE_BASE_URL}/{first_image.lstrip('/')}"
+        product_url = f"{SITE_BASE_URL}/products/{serial}"
+
+        html = template
+
+        # <title>
+        html = re.sub(
+            r"<title>[^<]*</title>",
+            f"<title>{html_escape(page_title)}</title>",
+            html, count=1,
+        )
+
+        # 各種 meta — 用屬性 (property=/name=) 跟 content= 抓
+        def replace_meta(html_in, attr_name, attr_value, new_content):
+            pattern = rf'<meta\s+{attr_name}=["\']{re.escape(attr_value)}["\']\s+content=["\'][^"\']*["\']\s*/?>'
+            replacement = f'<meta {attr_name}="{attr_value}" content="{html_escape(new_content)}" />'
+            return re.sub(pattern, replacement, html_in, count=1)
+
+        html = replace_meta(html, "name", "description", caption)
+        html = replace_meta(html, "property", "og:title", page_title)
+        html = replace_meta(html, "property", "og:description", caption)
+        html = replace_meta(html, "property", "og:image", image_url)
+        html = replace_meta(html, "property", "og:url", product_url)
+        html = replace_meta(html, "name", "twitter:title", page_title)
+        html = replace_meta(html, "name", "twitter:description", caption)
+        html = replace_meta(html, "name", "twitter:image", image_url)
+
+        # canonical
+        html = re.sub(
+            r'<link\s+rel=["\']canonical["\']\s+href=["\'][^"\']*["\']\s*/?>',
+            f'<link rel="canonical" href="{product_url}" />',
+            html, count=1,
+        )
+
+        # og:image:width/height 動態移除（不同產品圖大小不同，留著怕誤導爬蟲）
+        html = re.sub(
+            r'\s*<meta\s+property=["\']og:image:(width|height)["\']\s+content=["\'][^"\']*["\']\s*/?>',
+            "",
+            html,
+        )
+
+        # 寫進 /products/{N}/index.html
+        prod_dir = products_root / str(serial)
+        prod_dir.mkdir(parents=True, exist_ok=True)
+        prod_dir.joinpath("index.html").write_text(html, encoding="utf-8")
+
+    print(f"Generated {len(posts)} product pages in {products_root}")
 
 
 if __name__ == "__main__":

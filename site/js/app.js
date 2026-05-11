@@ -88,6 +88,14 @@
     return `${SITE_ORIGIN}/${src.replace(/^\//, "")}`;
   }
 
+  // 把 "images/xxx.jpg" 等相對路徑變成 "/images/xxx.jpg"
+  // 避免在 /products/N 子路徑下被解析成 /products/N/images/...
+  function resolveImageSrc(src) {
+    if (!src) return "";
+    if (/^https?:\/\//i.test(src) || src.startsWith("/")) return src;
+    return "/" + src;
+  }
+
   function shortDescription(item) {
     const raw = (item.usage || item.caption || "").toString();
     // 取前 100 字、移除多餘空白
@@ -392,7 +400,7 @@
     const card = document.createElement("article");
     card.className = "card" + (item.soldOut ? " is-sold" : "");
     card.dataset.id = item.id;
-    const cover = item.images[0] || "";
+    const cover = resolveImageSrc(item.images[0]);
     card.innerHTML = `
       <div class="card-image-wrap">
         <img loading="lazy" width="1080" height="1080" src="${escapeHTML(cover)}" alt="${escapeHTML(item.title)}" />
@@ -432,7 +440,7 @@
     currentModalItem = item;
     els.modal.hidden = false;
     els.modal.classList.toggle("is-sold", item.soldOut);
-    els.modalImage.src = item.images[0] || "";
+    els.modalImage.src = resolveImageSrc(item.images[0]);
     els.modalImage.alt = item.title;
     els.modalTitle.textContent = item.title;
     els.modalPrice.innerHTML = renderPriceHTML(item, true);
