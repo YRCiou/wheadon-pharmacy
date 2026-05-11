@@ -1,0 +1,42 @@
+name: Republish (重新發布)
+
+# 後台「重新發布」按鈕會呼叫 GitHub API 觸發這個 workflow
+# (也可以在 GitHub 網頁手動執行)
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: republish
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run build_data.py (抓試算表 + 預渲染 HTML)
+        run: python build_data.py
+
+      - name: Commit changes if any
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "沒有變化，不 commit"
+          else
+            git commit -m "republish: 從試算表更新商品內容"
+            git push
+          fi

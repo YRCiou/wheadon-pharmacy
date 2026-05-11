@@ -1,15 +1,22 @@
 """
-Read gallery-dl output in ig_raw/, build site/data/posts.json,
-and copy/symlink images into site/images/.
+Build site:
+  - Read gallery-dl output in ig_raw/, build site/data/posts.json
+  - Copy images into site/images/
+  - Fetch Google Sheet CSV, merge with posts, pre-render gallery into index.html
+  - Generate static product pages site/products/{N}/index.html
+  - Generate sitemap.xml
 
 Run:
   python build_data.py
 """
 
+import csv
+import io
 import json
 import os
 import re
 import shutil
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).parent
@@ -22,6 +29,103 @@ SITE_BASE_URL = "https://wheadon-pharmacy.pages.dev"
 
 IMG_OUT.mkdir(parents=True, exist_ok=True)
 DATA_OUT.mkdir(parents=True, exist_ok=True)
+
+
+# ----------------------------------------------------------------------
+# 讀 site/js/config.js 抓出 SHEET_CSV_URL（單一來源）
+# ----------------------------------------------------------------------
+def get_sheet_csv_url() -> str:
+    cfg = (SITE / "js" / "config.js").read_text(encoding="utf-8")
+    m = re.search(r'SHEET_CSV_URL\s*:\s*"([^"]+)"', cfg)
+    if not m or not m.group(1):
+        return ""
+    return m.group(1)
+
+
+# ----------------------------------------------------------------------
+# 抓試算表 CSV → 商品資料 (dict by id)
+# ----------------------------------------------------------------------
+TRUTHY = {"1", "true", "yes", "y", "v", "✓", "勾", "勾選", "是", "有", "on"}
+
+
+def truthy(v) -> bool:
+    if v is None:
+        return False
+    return str(v).strip().lower() in TRUTHY
+
+
+def num(v):
+    if v is None or str(v).strip() == "":
+        return None
+    try:
+        return float(str(v).replace(",", "").strip())
+    except Exception:
+        return None
+
+
+def fetch_sheet_rows(url: str):
+    """從 published CSV URL 取得 (header_row_index_or_-1, list_of_dicts)。
+    header 同時支援英文與中文欄位 (跟前端 HEADER_ALIASES 一致)。"""
+    if not url:
+        return []
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        data = resp.read().decode("utf-8")
+    reader = csv.reader(io.StringIO(data))
+    rows = list(reader)
+    if not rows:
+        return []
+    header = [c.strip() for c in rows[0]]
+
+    aliases = {
+        "id": ["id", "post_id", "貼文id", "貼文編號", "編號"],
+        "shortcode": ["shortcode", "post_shortcode"],
+        "name": ["name", "title", "商品名稱", "藥品名稱", "名稱"],
+        "keywords": ["keywords", "症狀", "症狀關鍵字", "搜尋關鍵字", "關鍵字"],
+        "priceOriginal": ["priceOriginal", "原價", "定價"],
+        "priceSale": ["priceSale", "特價", "售價"],
+        "consult": ["consult", "consultPharmacist", "諮詢藥師", "請洽藥師", "不公開價格"],
+        "hot": ["hot", "熱賣", "熱銷"],
+        "soldOut": ["soldOut", "完售", "售完", "已售完"],
+        "qty": ["qty", "quantity", "剩餘數量", "庫存", "數量"],
+        "usage": ["usage", "適用性", "適用範圍", "適應症"],
+        "hide": ["hide", "隱藏", "不顯示"],
+        "image": ["image", "圖片", "圖片網址", "image_url"],
+    }
+    idx = {}
+    for canon, names in aliases.items():
+        for i, h in enumerate(header):
+            if h.lower() in [n.lower() for n in names]:
+                idx[canon] = i
+                break
+
+    out = []
+    serial = 0
+    for r in rows[1:]:
+        def get(key):
+            i = idx.get(key, -1)
+            return (r[i] if i >= 0 and i < len(r) else "").strip()
+
+        if not get("id"):
+            continue
+        serial += 1
+        out.append({
+            "id": get("id"),
+            "serial": serial,
+            "shortcode": get("shortcode"),
+            "name": get("name"),
+            "keywords": get("keywords"),
+            "priceOriginal": num(get("priceOriginal")),
+            "priceSale": num(get("priceSale")),
+            "consult": truthy(get("consult")),
+            "hot": truthy(get("hot")),
+            "soldOut": truthy(get("soldOut")),
+            "qty": num(get("qty")),
+            "usage": get("usage"),
+            "hide": truthy(get("hide")),
+            "image": get("image"),
+        })
+    return out
 
 
 def first_line(text: str) -> str:
@@ -116,8 +220,20 @@ def process():
     print(f"Wrote {len(out)} posts to data/posts.json")
     print(f"Copied images into {IMG_OUT}")
 
+    # 合併 IG 文字資料 (posts.json) + 試算表動態資料 (價格、熱賣、隱藏...)
+    sheet_rows = []
+    sheet_url = get_sheet_csv_url()
+    if sheet_url:
+        try:
+            sheet_rows = fetch_sheet_rows(sheet_url)
+            print(f"Fetched {len(sheet_rows)} sheet rows")
+        except Exception as e:
+            print(f"⚠️  讀試算表失敗 ({e})，先用 IG 資料生 HTML")
+
+    products = merge_products(out, sheet_rows)
     write_sitemap(out)
-    write_product_pages(out)
+    write_product_pages(out)   # 先建立空的 /products/{N}/index.html
+    inject_gallery(products)   # 再把 gallery + JSON 注入「index.html + 所有 product 頁」
 
 
 def write_sitemap(posts):
@@ -161,6 +277,186 @@ def write_sitemap(posts):
     print(f"Wrote sitemap.xml with {len(posts) + 1} URLs")
 
 
+def resolve_image_src(src: str) -> str:
+    """images/xxx.jpg → /images/xxx.jpg；http(s) 開頭就原樣回傳。"""
+    if not src:
+        return ""
+    if src.startswith("http://") or src.startswith("https://"):
+        return src
+    if src.startswith("/"):
+        return src
+    return "/" + src
+
+
+def merge_products(posts, sheet_rows):
+    """
+    IG 貼文 + 試算表合併，產生最終 products list (display order)。
+    """
+    sheet_by_id = {r["id"]: r for r in sheet_rows}
+    used_ids = set()
+    merged = []
+
+    for p in posts:
+        s = sheet_by_id.get(p["id"])
+        if s:
+            used_ids.add(s["id"])
+        merged.append({
+            "id": p["id"],
+            "serial": s["serial"] if s else None,
+            "shortcode": p.get("shortcode") or (s.get("shortcode") if s else ""),
+            "title": (s["name"] if (s and s.get("name")) else p.get("title")) or "(未命名商品)",
+            "caption": p.get("caption", ""),
+            "keywords": (s.get("keywords") if s else "") or p.get("keywords", ""),
+            "priceOriginal": s.get("priceOriginal") if s else None,
+            "priceSale": s.get("priceSale") if s else None,
+            "consult": bool(s.get("consult")) if s else False,
+            "hot": bool(s.get("hot")) if s else False,
+            "soldOut": bool(s.get("soldOut")) if s else False,
+            "qty": s.get("qty") if s else None,
+            "usage": (s.get("usage") if s else "") or "",
+            "hide": bool(s.get("hide")) if s else False,
+            "url": p.get("url", ""),
+            "images": [(s["image"] if (s and s.get("image")) else (p["images"][0] if p.get("images") else ""))],
+        })
+
+    # 純試算表新增（不在 posts.json 但有 image）
+    for s in sheet_rows:
+        if s["id"] in used_ids:
+            continue
+        if not s.get("image"):
+            continue
+        merged.insert(0, {
+            "id": s["id"],
+            "serial": s["serial"],
+            "shortcode": s.get("shortcode", ""),
+            "title": s.get("name") or "(未命名商品)",
+            "caption": "",
+            "keywords": s.get("keywords", ""),
+            "priceOriginal": s.get("priceOriginal"),
+            "priceSale": s.get("priceSale"),
+            "consult": s.get("consult", False),
+            "hot": s.get("hot", False),
+            "soldOut": s.get("soldOut", False),
+            "qty": s.get("qty"),
+            "usage": s.get("usage", ""),
+            "hide": s.get("hide", False),
+            "url": "",
+            "images": [s["image"]],
+        })
+
+    return merged
+
+
+def render_card_html(item: dict) -> str:
+    """生成單一商品卡片 HTML（與 app.js renderCard 結構一致）。"""
+    cover = resolve_image_src(item["images"][0] if item.get("images") else "")
+    is_sold = item.get("soldOut")
+    classes = "card" + (" is-sold" if is_sold else "")
+    title = item.get("title") or ""
+    usage = item.get("usage") or ""
+
+    # 印章 / 跑馬燈
+    if is_sold:
+        overlay = '<div class="stamps"><div class="stamp is-sold">完售</div></div>'
+    elif item.get("hot"):
+        seg = "熱賣中　・　" * 8
+        overlay = (
+            '<div class="hot-marquee" aria-label="熱賣中">'
+            f'<div class="hot-marquee-track"><span>{seg}</span><span>{seg}</span></div>'
+            "</div>"
+        )
+    else:
+        overlay = ""
+
+    # 價格
+    has = lambda v: v is not None
+    fmt = lambda v: f"{int(v):,}" if v == int(v) else f"{v:,}"
+    if item.get("consult"):
+        price_html = '<span class="price-consult">諮詢藥師</span>'
+    elif has(item.get("priceSale")) and has(item.get("priceOriginal")) and item["priceSale"] < item["priceOriginal"]:
+        price_html = (
+            f'<span class="price"><span class="price-sale">{fmt(item["priceSale"])}</span>'
+            f'<span class="price-original">{fmt(item["priceOriginal"])}</span></span>'
+        )
+    elif has(item.get("priceSale")):
+        price_html = f'<span class="price"><span class="price-only">{fmt(item["priceSale"])}</span></span>'
+    elif has(item.get("priceOriginal")):
+        price_html = f'<span class="price"><span class="price-only">{fmt(item["priceOriginal"])}</span></span>'
+    else:
+        price_html = ""
+
+    # 數量
+    q = item.get("qty")
+    qty_html = ""
+    if q is not None and q > 0:
+        low = " is-low" if q <= 5 else ""
+        qty_html = f'<span class="qty{low}">剩 {int(q)} 件</span>'
+
+    serial = item.get("serial")
+    data_serial = f' data-serial="{serial}"' if serial else ""
+    data_id = f' data-id="{html_escape(str(item.get("id") or ""))}"'
+
+    usage_html = ""
+    if usage:
+        usage_html = f'<div class="card-usage">{html_escape(usage)}</div>'
+
+    return (
+        f'<article class="{classes}"{data_id}{data_serial}>'
+        '<div class="card-image-wrap">'
+        f'<img loading="lazy" width="1080" height="1080" src="{html_escape(cover)}" alt="{html_escape(title)}" />'
+        f'{overlay}'
+        '</div>'
+        '<div class="card-body">'
+        f'<h3 class="card-title">{html_escape(title)}</h3>'
+        f'{usage_html}'
+        f'<div class="card-meta">{price_html}{qty_html}</div>'
+        '</div>'
+        '</article>'
+    )
+
+
+def inject_gallery(products):
+    """把預先渲染的商品卡片 + 完整商品 JSON 寫進首頁、所有產品頁的標記內。"""
+    visible = [p for p in products if not p.get("hide")]
+    gallery_html = '<div id="gallery" class="gallery">'
+    if visible:
+        gallery_html += "\n" + "\n".join(render_card_html(p) for p in visible) + "\n"
+    gallery_html += "</div>"
+
+    # JSON 給 app.js 讀（modal/搜尋用）
+    products_json = json.dumps(visible, ensure_ascii=False)
+    products_data_html = f'<script id="productsData" type="application/json">{products_json}</script>'
+
+    files = [SITE / "index.html"]
+    products_dir = SITE / "products"
+    if products_dir.exists():
+        for sub in products_dir.iterdir():
+            if sub.is_dir():
+                f = sub / "index.html"
+                if f.exists():
+                    files.append(f)
+
+    for path in files:
+        html = path.read_text(encoding="utf-8")
+        html = re.sub(
+            r"<!-- gallery:start -->.*?<!-- gallery:end -->",
+            f"<!-- gallery:start -->{gallery_html}<!-- gallery:end -->",
+            html,
+            flags=re.DOTALL,
+            count=1,
+        )
+        html = re.sub(
+            r"<!-- products-data:start -->.*?<!-- products-data:end -->",
+            f"<!-- products-data:start -->\n{products_data_html}\n<!-- products-data:end -->",
+            html,
+            flags=re.DOTALL,
+            count=1,
+        )
+        path.write_text(html, encoding="utf-8")
+
+    print(f"Injected gallery ({len(visible)} cards) into {len(files)} HTML file(s)")
+
+
 def html_escape(s: str) -> str:
     return (
         (s or "")
@@ -187,12 +483,8 @@ def write_product_pages(posts):
     products_root = SITE / "products"
     products_root.mkdir(parents=True, exist_ok=True)
 
-    # 清掉舊的 (避免有殘留的 serial 過期頁面)
-    for sub in products_root.iterdir():
-        if sub.is_dir() and sub.name.isdigit():
-            for f in sub.iterdir():
-                f.unlink()
-            sub.rmdir()
+    # 標記目前要生成的 serial，最後再清掉多餘的
+    keep_serials = set()
 
     for serial, p in enumerate(posts, start=1):
         title_raw = (p.get("title") or "未命名商品").strip()
@@ -248,6 +540,17 @@ def write_product_pages(posts):
         prod_dir = products_root / str(serial)
         prod_dir.mkdir(parents=True, exist_ok=True)
         prod_dir.joinpath("index.html").write_text(html, encoding="utf-8")
+        keep_serials.add(str(serial))
+
+    # 清掉多餘的舊 serial 資料夾（嘗試但失敗不擋）
+    for sub in products_root.iterdir():
+        if sub.is_dir() and sub.name.isdigit() and sub.name not in keep_serials:
+            try:
+                for f in sub.iterdir():
+                    f.unlink()
+                sub.rmdir()
+            except Exception as e:
+                print(f"  ⚠️ 無法清掉舊資料夾 {sub.name}: {e}")
 
     print(f"Generated {len(posts)} product pages in {products_root}")
 

@@ -105,6 +105,7 @@ function doPost(e) {
     if (action === "add")            return json_(handleAdd_(body));
     if (action === "uploadImage")    return json_(handleUploadImage_(body));
     if (action === "importFromIg")   return json_(handleImportFromIg_(body));
+    if (action === "republish")      return json_(handleRepublish_(body));
     if (action === "changePassword") return json_(handleChangePassword_(body));
     if (action === "renameSelf")     return json_(handleRenameSelf_(body));
     if (action === "listUsers")      return json_(handleListUsers_(body));
@@ -406,6 +407,37 @@ function handleImportFromIg_(body) {
     image: fields.image,
     captionPreview: caption.substring(0, 100),
   };
+}
+
+// ============================================================
+// 重新發布：觸發 GitHub Actions workflow
+// ============================================================
+function handleRepublish_(body) {
+  const props = PropertiesService.getScriptProperties();
+  const token = props.getProperty("GITHUB_TOKEN");
+  if (!token) return { ok: false, error: "尚未設定 GITHUB_TOKEN" };
+
+  const url = "https://api.github.com/repos/" + REPO_OWNER + "/" + REPO_NAME
+    + "/actions/workflows/republish.yml/dispatches";
+  const resp = UrlFetchApp.fetch(url, {
+    method: "post",
+    headers: {
+      "Authorization": "Bearer " + token,
+      "Accept": "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+    contentType: "application/json",
+    payload: JSON.stringify({ ref: "main" }),
+    muteHttpExceptions: true,
+  });
+  const code = resp.getResponseCode();
+  if (code === 204) {
+    return { ok: true, msg: "已觸發發布，約 1～2 分鐘後上線" };
+  }
+  if (code === 403 || code === 404) {
+    return { ok: false, error: "GitHub token 缺 Actions 權限。請到 GitHub 編輯 wheadon-admin token，加上 Repository permissions → Actions → Read and write" };
+  }
+  return { ok: false, error: "GitHub Actions API " + code + ": " + resp.getContentText().substring(0, 200) };
 }
 
 // ============================================================

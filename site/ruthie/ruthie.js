@@ -297,6 +297,30 @@
     showLogin();
   };
 
+  // -------------------------------------------------- 重新發布
+  $("#republishBtn").onclick = async () => {
+    if (!confirm(
+      "確定要重新發布網站嗎？\n\n" +
+      "系統會把 Google 試算表的最新內容（價格、熱賣、商品名稱等）寫進公開網站，\n" +
+      "1～2 分鐘後上線。"
+    )) return;
+    const btn = $("#republishBtn");
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "發布中…";
+    try {
+      const r = await api("republish");
+      toast("✓ " + (r.msg || "已觸發發布"));
+    } catch (e) {
+      toast("發布失敗：" + e.message, true);
+    } finally {
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.textContent = orig;
+      }, 2000);
+    }
+  };
+
   // -------------------------------------------------- edit modal
   let pendingImageBase64 = null;
   let pendingImageName = null;

@@ -568,13 +568,38 @@
     rerender();
   });
 
+  // 從 HTML 內嵌的 JSON 讀預渲染好的商品清單 (build_data.py 寫進去)
+  function readEmbeddedProducts() {
+    const el = document.getElementById("productsData");
+    if (!el) return null;
+    const text = (el.textContent || "").trim();
+    if (!text || text === "[]") return null;
+    try {
+      const data = JSON.parse(text);
+      return Array.isArray(data) && data.length > 0 ? data : null;
+    } catch (e) {
+      console.warn("productsData JSON 解析失敗", e);
+      return null;
+    }
+  }
+
   async function init() {
     try {
-      const [posts, sheet] = await Promise.all([fetchPosts(), fetchSheet()]);
-      allItems = mergeData(posts, sheet).map((i) => ({
-        ...i,
-        _search: buildSearchString(i),
-      }));
+      // 優先用預渲染資料（後台「重新發布」後寫進 HTML）
+      const embedded = readEmbeddedProducts();
+      if (embedded) {
+        allItems = embedded.map((i) => ({
+          ...i,
+          _search: buildSearchString(i),
+        }));
+      } else {
+        // 沒預渲染資料 → 退回舊的「即時抓 CSV」方式（向後相容）
+        const [posts, sheet] = await Promise.all([fetchPosts(), fetchSheet()]);
+        allItems = mergeData(posts, sheet).map((i) => ({
+          ...i,
+          _search: buildSearchString(i),
+        }));
+      }
       els.status.hidden = true;
       rerender();
       // 如果網址是 /products/N，開對應的 modal
