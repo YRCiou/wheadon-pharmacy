@@ -1015,11 +1015,17 @@ mark {
   padding-left: 0;
 }
 .article-body .info-list li {
+  /* grid 3 欄：icon | label | content
+     column 2 auto → 自動抓本篇最長 label，所有列冒號同 x；content 緊接其後 */
+  display: grid;
+  grid-template-columns: 1.8em auto 1fr;
+  align-items: baseline;
+  column-gap: 6px;
   padding: 6px 0;
 }
 .article-body .info-list li > strong {
-  display: inline-block;
-  min-width: 7em;   /* 對齊冒號：以最長的「鄰近區域可達」為基準 */
+  text-align: right;
+  white-space: nowrap;
 }
 
 /* FAQ */
