@@ -710,12 +710,25 @@ a:hover { text-decoration: underline; }
 }
 .footer-block p { margin: 8px 0; font-size: 17px; line-height: 1.7; }
 .footer-block a { color: #b8e2cb; }
+.contact-row {
+  display: grid;
+  grid-template-columns: 1.4em 1fr;
+  align-items: baseline;
+  gap: 10px;
+}
 .contact-icon {
   display: inline-block;
-  width: 1em;
-  height: 1em;
-  vertical-align: -0.18em;
-  margin-right: 4px;
+  width: 1.4em;
+  text-align: center;
+  flex-shrink: 0;
+}
+.contact-icon.emoji {
+  font-size: 1.05em;
+  line-height: 1.4;
+}
+svg.contact-icon {
+  height: 1.1em;
+  vertical-align: middle;
 }
 .icon-ig   { color: #e1306c; }
 .icon-line { color: #06c755; }
