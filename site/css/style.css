@@ -999,6 +999,10 @@ mark {
 .article-body .info-list li {
   padding: 6px 0;
 }
+.article-body .info-list li > strong {
+  display: inline-block;
+  min-width: 7em;   /* 對齊冒號：以最長的「鄰近區域可達」為基準 */
+}
 
 /* FAQ */
 .article-body dl.faq {
