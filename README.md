@@ -3,6 +3,19 @@
 把 IG @wheadonpharmacy 的所有貼文圖片變成可搜尋的商品目錄，
 價格 / 適用性 / 熱賣 / 完售 等欄位由你自己維護的 **Google 試算表** 控制。
 
+---
+
+## ★ 對未來 AI / Claude 的指示
+
+**任何 SEO 檢查、Meta 改寫、新文章生成、競爭對手分析之前，先讀以下檔案：**
+
+1. [`docs/SEO_CONTEXT.md`](docs/SEO_CONTEXT.md) — 網站背景、服務、用戶、技術現況（單一資料來源）
+2. [`docs/SEO_STRATEGY.md`](docs/SEO_STRATEGY.md) — 地點 × 緊急服務 × 服務組合 的整合策略
+3. [`docs/SEO_NEW_ARTICLE_CHECKLIST.md`](docs/SEO_NEW_ARTICLE_CHECKLIST.md) — 每篇新文章必跑的 SOP
+4. [`docs/competitors/`](docs/competitors/) — 大樹 / 瑞昌 / 全成 對手檔
+
+此網站專案**僅描述惠登藥局**，請勿與其他 InnovaRad 客戶資料混雜。
+
 ```
 99_wheadon.pharmacy/
 ├─ ig_raw/                   # gallery-dl 抓下來的原始 IG 圖 + metadata
