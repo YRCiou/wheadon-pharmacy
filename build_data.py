@@ -246,8 +246,8 @@ def process():
             print(f"⚠️  讀試算表失敗 ({e})，先用 IG 資料生 HTML")
 
     products = merge_products(out, sheet_rows)
-    write_sitemap(out)
-    write_product_pages(out)   # 先建立空的 /products/{N}/index.html
+    write_sitemap(products)
+    write_product_pages(products)   # 用合併後資料：含 soldOut/priceSale/usage/keywords
     inject_gallery(products)   # 再把 gallery + JSON 注入「index.html + 所有 product 頁」
 
 
@@ -276,8 +276,12 @@ def write_sitemap(posts):
         '    <priority>1.0</priority>',
         '  </url>',
     ]
-    # Serial numbering matches frontend: posts ordered by date desc -> serial 1..N
-    for serial, p in enumerate(posts, start=1):
+    # Serial 用 item.serial（合併資料）；沒有 serial 的跳過
+    written = 1  # homepage already counted
+    for p in posts:
+        serial = p.get("serial")
+        if not serial:
+            continue
         lastmod = fmt_date(p.get("date", ""))
         lines.extend([
             '  <url>',
@@ -287,9 +291,10 @@ def write_sitemap(posts):
             '    <priority>0.8</priority>',
             '  </url>',
         ])
+        written += 1
     lines.append('</urlset>')
     SITE.joinpath("sitemap.xml").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"Wrote sitemap.xml with {len(posts) + 1} URLs")
+    print(f"Wrote sitemap.xml with {written} URLs")
 
 
 def resolve_image_src(src: str) -> str:
@@ -483,9 +488,88 @@ def html_escape(s: str) -> str:
     )
 
 
+def build_seo_title(title_raw: str) -> str:
+    """商品頁 <title>：含品名 + 在地後綴，控制在 ~60 字內。"""
+    suffix = "｜台中北屯惠登藥局・藥師諮詢"
+    # 60 字內：suffix ≈ 15 字，給品名留 ~45
+    max_name = 60 - len(suffix)
+    name = title_raw if len(title_raw) <= max_name else title_raw[:max_name].rstrip() + "…"
+    return f"{name}{suffix}"
+
+
+def build_seo_description(p: dict, title_raw: str) -> str:
+    """商品頁 description：開頭強調地點 + 商品名 + 適用症狀，控制在 ~155 字內。"""
+    prefix = f"【台中北屯藥局・惠登】{title_raw}"
+    usage = (p.get("usage") or "").strip()
+    keywords = (p.get("keywords") or "").strip()
+    caption = " ".join((p.get("caption") or "").split())
+
+    parts = [prefix]
+    if usage:
+        parts.append(f"適用：{usage}")
+    elif caption:
+        # 取 caption 前 80 字當摘要
+        parts.append(caption[:80])
+    if keywords:
+        parts.append(f"關鍵字：{keywords}")
+    parts.append("藥師一對一諮詢 (04)2422-5682")
+
+    desc = " ・ ".join(parts)
+    if len(desc) > 155:
+        desc = desc[:155].rstrip("・ ") + "…"
+    return desc
+
+
+def build_product_jsonld(p: dict, title_raw: str, image_url: str, product_url: str) -> str:
+    """產生 Product schema JSON-LD 字串（含 script 標籤）。"""
+    data = {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "@id": f"{product_url}#product",
+        "name": title_raw,
+        "image": image_url,
+        "url": product_url,
+        "brand": {"@type": "Brand", "name": "惠登藥局 Wheadon Pharmacy"},
+        "category": "Pharmacy/Health",
+    }
+    # description：用較長版本（300 字內）
+    caption = " ".join((p.get("caption") or "").split())
+    if caption:
+        data["description"] = caption[:300]
+    elif p.get("usage"):
+        data["description"] = p["usage"]
+
+    # 賣家 / 販售地點：指向首頁的 Pharmacy 實體
+    data["offers"] = {
+        "@type": "Offer",
+        "url": product_url,
+        "priceCurrency": "TWD",
+        "availability": (
+            "https://schema.org/OutOfStock"
+            if p.get("soldOut")
+            else "https://schema.org/InStock"
+        ),
+        "seller": {"@id": f"{SITE_BASE_URL}/#pharmacy"},
+        "areaServed": "TW",
+    }
+    # 如果有特價或原價就填 price，否則略過 (避免 rich result 失敗)
+    price = p.get("priceSale") or p.get("priceOriginal")
+    if price is not None:
+        try:
+            data["offers"]["price"] = str(int(float(price)))
+        except (TypeError, ValueError):
+            pass
+
+    return (
+        '<script type="application/ld+json">\n'
+        + json.dumps(data, ensure_ascii=False, indent=2)
+        + "\n</script>"
+    )
+
+
 def write_product_pages(posts):
     """
-    為每個商品產生 /products/{serial}/index.html，含獨立的 OG meta。
+    為每個商品產生 /products/{serial}/index.html，含獨立的 OG meta + Product schema。
     社群分享預覽 (LINE/FB/Telegram) 就會看到對的圖跟標題。
 
     流水號 = 在前端顯示順序 (newest first)，從 1 開始。
@@ -501,17 +585,20 @@ def write_product_pages(posts):
     # 標記目前要生成的 serial，最後再清掉多餘的
     keep_serials = set()
 
-    for serial, p in enumerate(posts, start=1):
+    for p in posts:
+        serial = p.get("serial")
+        if not serial:
+            # 沒有 serial 的商品（IG 抓到但試算表還沒填）跳過，避免位置錯亂
+            continue
         title_raw = (p.get("title") or "未命名商品").strip()
-        page_title = f"{title_raw}｜惠登藥局 Wheadon Pharmacy"
-        caption = " ".join((p.get("caption") or "").split())
-        if len(caption) > 160:
-            caption = caption[:160] + "…"
-        if not caption:
-            caption = "惠登藥局商品"
+        page_title = build_seo_title(title_raw)
+        description = build_seo_description(p, title_raw)
         first_image = (p.get("images") or [None])[0] or "banner.png"
         image_url = f"{SITE_BASE_URL}/{first_image.lstrip('/')}"
         product_url = f"{SITE_BASE_URL}/products/{serial}"
+
+        # OG / Twitter 用較短的版本（社群預覽喜歡 ~120 字）
+        og_desc = description if len(description) <= 120 else description[:120] + "…"
 
         html = template
 
@@ -528,13 +615,13 @@ def write_product_pages(posts):
             replacement = f'<meta {attr_name}="{attr_value}" content="{html_escape(new_content)}" />'
             return re.sub(pattern, replacement, html_in, count=1)
 
-        html = replace_meta(html, "name", "description", caption)
+        html = replace_meta(html, "name", "description", description)
         html = replace_meta(html, "property", "og:title", page_title)
-        html = replace_meta(html, "property", "og:description", caption)
+        html = replace_meta(html, "property", "og:description", og_desc)
         html = replace_meta(html, "property", "og:image", image_url)
         html = replace_meta(html, "property", "og:url", product_url)
         html = replace_meta(html, "name", "twitter:title", page_title)
-        html = replace_meta(html, "name", "twitter:description", caption)
+        html = replace_meta(html, "name", "twitter:description", og_desc)
         html = replace_meta(html, "name", "twitter:image", image_url)
 
         # canonical
@@ -549,6 +636,14 @@ def write_product_pages(posts):
             r'\s*<meta\s+property=["\']og:image:(width|height)["\']\s+content=["\'][^"\']*["\']\s*/?>',
             "",
             html,
+        )
+
+        # 注入 Product schema（在 </head> 前）
+        product_jsonld = build_product_jsonld(p, title_raw, image_url, product_url)
+        html = html.replace(
+            "</head>",
+            f"\n<!-- Product schema (auto-generated) -->\n{product_jsonld}\n</head>",
+            1,
         )
 
         # 寫進 /products/{N}/index.html
