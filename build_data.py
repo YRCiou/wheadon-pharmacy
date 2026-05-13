@@ -247,6 +247,7 @@ def process():
 
     products = merge_products(out, sheet_rows)
     articles = load_articles()
+    inject_articles_preview(articles)   # 先把首頁的「最新文章」區塊填好（會被 write_product_pages 帶到商品頁）
     write_sitemap(products, articles)
     write_product_pages(products)   # 用合併後資料：含 soldOut/priceSale/usage/keywords
     write_article_pages(articles, products)
@@ -737,6 +738,57 @@ def load_articles():
     # 依日期降序排，最新在前
     articles.sort(key=lambda a: a.get("date", ""), reverse=True)
     return articles
+
+
+def inject_articles_preview(articles, max_items=3):
+    """把 site/index.html 的 <!-- articles-preview:start --> ... :end --> 之間填上最新文章卡。
+
+    呼叫時機：write_product_pages 之前 → 商品頁也會帶到這個區塊。
+    write_article_pages 因為整段 <main> 重做，文章頁不會有這個區塊。
+    """
+    index_path = SITE / "index.html"
+    if not index_path.exists():
+        return
+    html = index_path.read_text(encoding="utf-8")
+
+    if not articles:
+        # 沒文章 → 把區塊清空（仍保留 markers 供下次寫入）
+        new_block = ""
+    else:
+        items = []
+        for a in articles[:max_items]:
+            slug = a.get("slug", "")
+            title = html_escape(a.get("title", ""))
+            date = html_escape(a.get("date", ""))
+            excerpt = html_escape(a.get("description", ""))
+            items.append(
+                '<article class="article-preview-card">'
+                f'<h3 class="article-preview-title"><a href="/articles/{slug}/">{title}</a></h3>'
+                f'<p class="article-preview-date"><time datetime="{date}">{date}</time></p>'
+                f'<p class="article-preview-excerpt">{excerpt}</p>'
+                f'<p class="article-preview-cta"><a href="/articles/{slug}/">繼續閱讀 →</a></p>'
+                '</article>'
+            )
+        new_block = (
+            '\n  <section class="articles-preview" aria-labelledby="articles-preview-title">'
+            '\n    <h2 id="articles-preview-title" class="section-title">最新文章</h2>'
+            '\n    <p class="section-sub">藥師親寫，給北屯昌平路一帶住戶的用藥與保健資訊。</p>'
+            '\n    <div class="articles-preview-grid">'
+            + "".join(items)
+            + '</div>'
+            '\n    <p class="articles-preview-more"><a href="/articles/">看所有文章 →</a></p>'
+            '\n  </section>\n  '
+        )
+
+    new_html = re.sub(
+        r'<!-- articles-preview:start -->.*?<!-- articles-preview:end -->',
+        f'<!-- articles-preview:start -->{new_block}<!-- articles-preview:end -->',
+        html,
+        count=1,
+        flags=re.S,
+    )
+    index_path.write_text(new_html, encoding="utf-8")
+    print(f"Injected articles preview ({min(len(articles), max_items)} card{'s' if len(articles)>1 else ''})")
 
 
 def extract_faq_pairs(body: str):

@@ -101,10 +101,69 @@
 
 ## 7. 最近更新
 
-- 2026-05-12：初版建立。已完成 footer 地圖、骨架屏、模糊搜尋、手機浮動電話鈕、Clarity 安裝
+### 整體進度總覽（2026-05-13 截止）
+
+| 工作項目 | 狀態 | 備註 |
+|---|---|---|
+| 站點上線 + Cloudflare Pages 部署 | ✅ | https://wheadon-pharmacy.pages.dev/ |
+| Apps Script Web App 後端（試算表 + 認證） | ✅ | /ruthie/ 後台、多管理員 |
+| 商品 IG 同步 + 試算表合併 | ✅ | 21 個商品 + IG 自動匯入 |
+| GTM `GTM-PFVCRJ2V` | ✅ | 全頁面 |
+| Microsoft Clarity `wpsvug3h7h` | ✅ | 全頁面 |
+| 浮動 LINE / 電話 CTA | ✅ | 永遠顯示（50+ 客群友善） |
+| Footer Google Maps 嵌入 | ✅ | |
+| 骨架屏載入動畫 | ✅ | 後台 + 前台 |
+| 模糊搜尋（Levenshtein） | ✅ | 容錯打錯字 |
+| **SEO 批次 1**：首頁 Meta + LocalBusiness JSON-LD | ✅ | 加 medicalSpecialty / paymentAccepted / areaServed / hasOfferCatalog |
+| **SEO 批次 2**：商品頁 title / description / Product schema | ✅ | 完售品標 OutOfStock；無價商品略過 offers 避免 Rich Results invalid |
+| **SEO 批次 3**：首頁「我們的服務」+「常見服務組合」section | ✅ | 3 服務卡 + 5 bundle 卡，bundle 點擊觸發 fuzzy 過濾 |
+| **SEO 批次 4**：`/articles/` 路由 + Article + FAQPage schema | ✅ | datetime 含台灣時區 |
+| **SEO 批次 5**：第 2 篇文章 | ✅ | 〈北屯慢箋懶人包〉|
+| **SEO 批次 6**：首頁加最新文章區塊 | ✅ | bundles 下方 |
+| **SEO 批次 7**：本檔最近更新整理 | ✅ | 你看到的就是 |
+
+### 內容生產進度（依 SEO_STRATEGY.md §5）
+
+| Month 1 | 主關鍵字 | 狀態 |
+|---|---|---|
+| 〈北屯昌平路藥局推薦〉 | 北屯昌平路藥局 | ✅ 2026-05-12 |
+| 〈台中北屯區慢箋領藥懶人包〉 | 北屯慢箋 | ✅ 2026-05-13 |
+| 〈為什麼選社區藥局而不是大醫院？〉 | 北屯社區藥局 | ⏳ 待寫 |
+
+### 結構化資料覆蓋
+
+| Schema 類型 | 頁面 | 通過 Rich Results Test |
+|---|---|---|
+| Pharmacy (LocalBusiness + Organization) | 所有 22 個 HTML | ✅ |
+| Product | 21 個商品頁 | ✅（無價商品略過 offers） |
+| Article | 2 個文章頁 | ✅ |
+| FAQPage | 2 個文章頁 | ✅ |
+
+### 流量起點（基準線）
+
+- Search Console：已提交 sitemap.xml（25 URLs，含 1 首頁 + 21 商品 + 1 articles 列表 + 2 文章）
+- 「無法擷取」是 Search Console 暫存狀態，curl 驗證 Googlebot 可正常存取
+- Clarity dashboard：等累積 session 中
+
+### 已知限制 / 待辦
+
+- **`*.pages.dev` 域名**：Cloudflare 文件建議不要當 production，長期應接 custom domain（如 `wheadon.pharmacy` / `wheadon-pharmacy.tw`）
+- **GBP 評價衝量**：尚未啟動，目標 3 個月內 ≥80 則（超越全成北屯店）
+- **Lighthouse 跑分**：尚未基準量測
+- **第 3 篇文章**：依排程要寫
+
+### 完整時間軸
+
+- 2026-05-08：站點初版上線
+- 2026-05-09：IG 商品同步、試算表設定
+- 2026-05-10：Apps Script 後台、多管理員、Product modal
+- 2026-05-11：/products/N 路由、預渲染 SSG、SEO 結構化資料初版
+- 2026-05-12：footer 地圖、骨架屏、模糊搜尋、浮動電話鈕、Clarity 安裝
 - 2026-05-12：Clarity 開始收 session（site key `wpsvug3h7h`）
-- 2026-05-12：SEO 批次 1~4 完成：首頁 Meta、商品頁 Product schema、服務 section、Bundle、`/articles/` 路由
+- 2026-05-12：SEO 批次 1~4 完成（首頁 Meta、商品 Product schema、首頁服務/組合 section、/articles/ 路由）
 - 2026-05-12：第 1 篇〈北屯昌平路藥局推薦〉發布，鎖「北屯昌平路藥局」
 - 2026-05-13：第 2 篇〈台中北屯區慢箋領藥懶人包〉發布，鎖「北屯慢箋」
+- 2026-05-13：浮動 CTA 改成永遠顯示（移除下滾隱藏）
+- 2026-05-13：SEO 批次 6 完成（首頁加最新文章區塊）+ 批次 7 完成（本檔整理）
 
 > ★ 更新本檔時請加日期 + 一行摘要，方便未來追蹤。
