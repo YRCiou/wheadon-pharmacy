@@ -1003,7 +1003,12 @@ mark {
 }
 .article-body a {
   color: var(--brand);
-  text-decoration: underline;
+  text-decoration: none;
+  font-weight: 600;
+}
+.article-body a:hover {
+  text-decoration: none;
+  color: #245741;   /* deeper brand */
 }
 .article-body .info-list {
   list-style: none;
