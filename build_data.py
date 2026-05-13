@@ -759,12 +759,10 @@ def inject_articles_preview(articles, max_items=3):
         for a in articles[:max_items]:
             slug = a.get("slug", "")
             title = html_escape(a.get("title", ""))
-            date = html_escape(a.get("date", ""))
             excerpt = html_escape(a.get("description", ""))
             items.append(
                 '<article class="article-preview-card">'
                 f'<h3 class="article-preview-title"><a href="/articles/{slug}/">{title}</a></h3>'
-                f'<p class="article-preview-date"><time datetime="{date}">{date}</time></p>'
                 f'<p class="article-preview-excerpt">{excerpt}</p>'
                 f'<p class="article-preview-cta"><a href="/articles/{slug}/">繼續閱讀 →</a></p>'
                 '</article>'
