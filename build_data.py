@@ -246,13 +246,16 @@ def process():
             print(f"⚠️  讀試算表失敗 ({e})，先用 IG 資料生 HTML")
 
     products = merge_products(out, sheet_rows)
-    write_sitemap(products)
+    articles = load_articles()
+    write_sitemap(products, articles)
     write_product_pages(products)   # 用合併後資料：含 soldOut/priceSale/usage/keywords
+    write_article_pages(articles, products)
+    write_articles_index(articles)
     inject_gallery(products)   # 再把 gallery + JSON 注入「index.html + 所有 product 頁」
 
 
-def write_sitemap(posts):
-    """Generate site/sitemap.xml — homepage + every product page (/products/{serial})."""
+def write_sitemap(posts, articles=None):
+    """Generate site/sitemap.xml — homepage + every product page + every article."""
     today = ""
     try:
         from datetime import date
@@ -292,6 +295,26 @@ def write_sitemap(posts):
             '  </url>',
         ])
         written += 1
+    # Articles listing + each article
+    if articles:
+        lines.extend([
+            '  <url>',
+            f'    <loc>{SITE_BASE_URL}/articles/</loc>',
+            '    <changefreq>weekly</changefreq>',
+            '    <priority>0.7</priority>',
+            '  </url>',
+        ])
+        written += 1
+        for a in articles:
+            lines.extend([
+                '  <url>',
+                f'    <loc>{SITE_BASE_URL}/articles/{a["slug"]}/</loc>',
+                f'    <lastmod>{a.get("date") or ""}</lastmod>',
+                '    <changefreq>monthly</changefreq>',
+                '    <priority>0.7</priority>',
+                '  </url>',
+            ])
+            written += 1
     lines.append('</urlset>')
     SITE.joinpath("sitemap.xml").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"Wrote sitemap.xml with {written} URLs")
@@ -677,6 +700,341 @@ def write_product_pages(posts):
                 print(f"  ⚠️ 無法清掉舊資料夾 {sub.name}: {e}")
 
     print(f"Generated {len(posts)} product pages in {products_root}")
+
+
+# ============================================================
+# Articles (文章 / 衛教專欄)
+# ============================================================
+ARTICLES_DIR = ROOT / "articles"
+ARTICLES_OUT = SITE / "articles"
+
+
+def load_articles():
+    """讀 articles/*.html，每個檔頭 <!--meta ... --> 區塊就是 frontmatter。"""
+    if not ARTICLES_DIR.exists():
+        return []
+    articles = []
+    for path in sorted(ARTICLES_DIR.glob("*.html")):
+        text = path.read_text(encoding="utf-8")
+        m = re.match(r"\s*<!--meta\s*\n(.*?)\n-->\s*", text, re.S)
+        if not m:
+            print(f"  ⚠️ {path.name}：找不到 <!--meta ... --> 區塊，略過")
+            continue
+        meta = {}
+        for line in m.group(1).splitlines():
+            if ":" in line:
+                k, v = line.split(":", 1)
+                meta[k.strip()] = v.strip()
+        body = text[m.end():].strip()
+        # 拆出 <article-body>...</article-body>
+        bm = re.search(r"<article-body>(.*)</article-body>", body, re.S)
+        if bm:
+            body = bm.group(1).strip()
+        meta["slug"] = path.stem
+        meta["body"] = body
+        meta["source_path"] = str(path)
+        articles.append(meta)
+    # 依日期降序排，最新在前
+    articles.sort(key=lambda a: a.get("date", ""), reverse=True)
+    return articles
+
+
+def extract_faq_pairs(body: str):
+    """從 <dl class="faq"> ... </dl> 抓出 dt/dd pairs，給 FAQPage schema 用。"""
+    dl_match = re.search(r'<dl class="faq">(.*?)</dl>', body, re.S)
+    if not dl_match:
+        return []
+    block = dl_match.group(1)
+    pairs = []
+    # 簡單 parser：交替抓 <dt>...</dt><dd>...</dd>
+    pattern = re.compile(r"<dt>(.*?)</dt>\s*<dd>(.*?)</dd>", re.S)
+    for q, a in pattern.findall(block):
+        # 去掉內部 HTML tag 簡化
+        q_text = re.sub(r"<[^>]+>", "", q).strip()
+        a_text = re.sub(r"<[^>]+>", "", a).strip()
+        if q_text and a_text:
+            pairs.append((q_text, a_text))
+    return pairs
+
+
+def build_article_jsonld(meta: dict, article_url: str, image_url: str):
+    """產生 Article + FAQPage (如果有 FAQ) 兩個 JSON-LD。"""
+    article_data = {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "@id": f"{article_url}#article",
+        "headline": meta.get("title", ""),
+        "description": meta.get("description", ""),
+        "image": image_url,
+        "url": article_url,
+        "datePublished": meta.get("date", ""),
+        "dateModified": meta.get("date", ""),
+        "inLanguage": "zh-Hant-TW",
+        "author": {
+            "@type": "Organization",
+            "name": "惠登藥局 Wheadon Pharmacy",
+            "url": SITE_BASE_URL,
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "惠登藥局 Wheadon Pharmacy",
+            "logo": {
+                "@type": "ImageObject",
+                "url": f"{SITE_BASE_URL}/favicon.png",
+            },
+        },
+        "mainEntityOfPage": article_url,
+    }
+    if meta.get("keywords"):
+        article_data["keywords"] = meta["keywords"]
+
+    blocks = [
+        '<script type="application/ld+json">\n'
+        + json.dumps(article_data, ensure_ascii=False, indent=2)
+        + "\n</script>"
+    ]
+
+    faqs = extract_faq_pairs(meta.get("body", ""))
+    if faqs:
+        faq_data = {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": q,
+                    "acceptedAnswer": {"@type": "Answer", "text": a},
+                }
+                for q, a in faqs
+            ],
+        }
+        blocks.append(
+            '<script type="application/ld+json">\n'
+            + json.dumps(faq_data, ensure_ascii=False, indent=2)
+            + "\n</script>"
+        )
+
+    return "\n".join(blocks)
+
+
+def build_related_products_html(meta: dict, products: list) -> str:
+    """frontmatter 的 related_products: 18,16,3 → 3 個商品卡 HTML。"""
+    raw = meta.get("related_products", "")
+    if not raw:
+        return ""
+    serials = []
+    for s in raw.split(","):
+        s = s.strip()
+        if s.isdigit():
+            serials.append(int(s))
+    if not serials:
+        return ""
+    by_serial = {p["serial"]: p for p in products if p.get("serial")}
+    items = []
+    for sn in serials:
+        p = by_serial.get(sn)
+        if not p:
+            continue
+        title = (p.get("title") or "").strip()
+        cover = (p.get("images") or [""])[0]
+        cover_src = resolve_image_src(cover) if cover else ""
+        items.append(
+            f'<a class="related-product" href="/products/{sn}/">'
+            + (f'<img loading="lazy" src="{html_escape(cover_src)}" alt="{html_escape(title)}" width="200" height="200">' if cover_src else "")
+            + f'<span class="related-product-title">{html_escape(title)}</span>'
+            + "</a>"
+        )
+    if not items:
+        return ""
+    return (
+        '<section class="related-section" aria-labelledby="related-title">'
+        '<h2 id="related-title">相關商品</h2>'
+        '<div class="related-grid">'
+        + "".join(items)
+        + "</div></section>"
+    )
+
+
+def build_article_main_html(meta: dict, products: list) -> str:
+    """組出 <main> 內部 HTML（替換掉首頁的 main 內容）。"""
+    title = html_escape(meta.get("title", ""))
+    date = meta.get("date", "")
+    body = meta.get("body", "")
+    related = build_related_products_html(meta, products)
+    return f'''<main class="site-main article-main">
+  <article class="article">
+    <header class="article-header">
+      <p class="article-breadcrumb"><a href="/">首頁</a> ・ <a href="/articles/">文章</a></p>
+      <h1 class="article-title">{title}</h1>
+      <p class="article-meta"><time datetime="{html_escape(date)}">{html_escape(date)}</time> ・ 惠登藥局 北屯昌平路</p>
+    </header>
+    <div class="article-body">
+{body}
+    </div>
+    <footer class="article-footer">
+      <p class="article-cta-row">
+        <a class="bundle-cta" href="https://lin.ee/Zcku5o0" target="_blank" rel="noopener">LINE 問藥師</a>
+        <a class="bundle-cta secondary" href="tel:+886424225682">來電 (04) 2422-5682</a>
+        <a class="bundle-cta secondary" href="/articles/">看其他文章 →</a>
+      </p>
+    </footer>
+  </article>
+  {related}
+</main>'''
+
+
+def write_article_pages(articles, products):
+    """為每篇文章生成 /articles/{slug}/index.html。"""
+    if not articles:
+        return
+    template = (SITE / "index.html").read_text(encoding="utf-8")
+    ARTICLES_OUT.mkdir(parents=True, exist_ok=True)
+    keep = set()
+
+    for a in articles:
+        slug = a["slug"]
+        title = a.get("title", "")
+        description = a.get("description", "")
+        date = a.get("date", "")
+        cover = a.get("cover_image", "/banner.png")
+        if cover.startswith("/"):
+            image_url = f"{SITE_BASE_URL}{cover}"
+        elif cover.startswith("http"):
+            image_url = cover
+        else:
+            image_url = f"{SITE_BASE_URL}/{cover}"
+        article_url = f"{SITE_BASE_URL}/articles/{slug}/"
+
+        html = template
+
+        # <title>
+        page_title = f"{title}｜惠登藥局 北屯昌平路"
+        if len(page_title) > 70:
+            page_title = title
+        html = re.sub(r"<title>[^<]*</title>", f"<title>{html_escape(page_title)}</title>", html, count=1)
+
+        # meta 替換（沿用 write_product_pages 的 helper 邏輯）
+        def replace_meta(html_in, attr_name, attr_value, new_content):
+            pattern = rf'<meta\s+{attr_name}=["\']{re.escape(attr_value)}["\']\s+content=["\'][^"\']*["\']\s*/?>'
+            replacement = f'<meta {attr_name}="{attr_value}" content="{html_escape(new_content)}" />'
+            return re.sub(pattern, replacement, html_in, count=1)
+
+        html = replace_meta(html, "name", "description", description)
+        if a.get("keywords"):
+            html = replace_meta(html, "name", "keywords", a["keywords"])
+        html = replace_meta(html, "property", "og:title", page_title)
+        html = replace_meta(html, "property", "og:description", description)
+        html = replace_meta(html, "property", "og:image", image_url)
+        html = replace_meta(html, "property", "og:url", article_url)
+        html = replace_meta(html, "name", "twitter:title", page_title)
+        html = replace_meta(html, "name", "twitter:description", description)
+        html = replace_meta(html, "name", "twitter:image", image_url)
+
+        # canonical
+        html = re.sub(
+            r'<link\s+rel=["\']canonical["\']\s+href=["\'][^"\']*["\']\s*/?>',
+            f'<link rel="canonical" href="{article_url}" />',
+            html, count=1,
+        )
+
+        # og:image:width/height 砍掉（用 banner 預設值會誤導）
+        html = re.sub(
+            r'\s*<meta\s+property=["\']og:image:(width|height)["\']\s+content=["\'][^"\']*["\']\s*/?>',
+            "",
+            html,
+        )
+
+        # 把整個 <main>...</main> 換成文章內容
+        new_main = build_article_main_html(a, products)
+        html = re.sub(r'<main class="site-main">.*?</main>', new_main, html, count=1, flags=re.S)
+
+        # 注入 Article + FAQ schema
+        a_jsonld = build_article_jsonld(a, article_url, image_url)
+        html = html.replace(
+            "</head>",
+            f"\n<!-- Article schema (auto-generated) -->\n{a_jsonld}\n</head>",
+            1,
+        )
+
+        out_dir = ARTICLES_OUT / slug
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_dir.joinpath("index.html").write_text(html, encoding="utf-8")
+        keep.add(slug)
+
+    # 清掉舊文章資料夾
+    for sub in ARTICLES_OUT.iterdir():
+        if sub.is_dir() and sub.name not in keep and sub.name not in {"_assets"}:
+            try:
+                for f in sub.iterdir():
+                    f.unlink()
+                sub.rmdir()
+            except Exception as e:
+                print(f"  ⚠️ 無法清掉舊文章 {sub.name}: {e}")
+
+    print(f"Generated {len(articles)} article pages in {ARTICLES_OUT}")
+
+
+def write_articles_index(articles):
+    """生成 /articles/index.html 文章列表頁。"""
+    if not articles:
+        return
+    template = (SITE / "index.html").read_text(encoding="utf-8")
+
+    title = "健康知識｜惠登藥局衛教專欄"
+    description = "惠登藥局衛教專欄：北屯昌平路藥局推薦、慢性病用藥、中西藥併用、保健食品等藥師專業文章。"
+    url = f"{SITE_BASE_URL}/articles/"
+    image_url = f"{SITE_BASE_URL}/banner.png"
+
+    html = template
+    html = re.sub(r"<title>[^<]*</title>", f"<title>{html_escape(title)}</title>", html, count=1)
+
+    def replace_meta(html_in, attr_name, attr_value, new_content):
+        pattern = rf'<meta\s+{attr_name}=["\']{re.escape(attr_value)}["\']\s+content=["\'][^"\']*["\']\s*/?>'
+        replacement = f'<meta {attr_name}="{attr_value}" content="{html_escape(new_content)}" />'
+        return re.sub(pattern, replacement, html_in, count=1)
+
+    html = replace_meta(html, "name", "description", description)
+    html = replace_meta(html, "property", "og:title", title)
+    html = replace_meta(html, "property", "og:description", description)
+    html = replace_meta(html, "property", "og:url", url)
+    html = replace_meta(html, "name", "twitter:title", title)
+    html = replace_meta(html, "name", "twitter:description", description)
+    html = re.sub(
+        r'<link\s+rel=["\']canonical["\']\s+href=["\'][^"\']*["\']\s*/?>',
+        f'<link rel="canonical" href="{url}" />',
+        html, count=1,
+    )
+
+    # 文章列表 HTML
+    items = []
+    for a in articles:
+        slug = a["slug"]
+        t = html_escape(a.get("title", ""))
+        d = html_escape(a.get("date", ""))
+        desc = html_escape(a.get("description", ""))
+        items.append(
+            f'<article class="article-card">'
+            f'  <h2 class="article-card-title"><a href="/articles/{slug}/">{t}</a></h2>'
+            f'  <p class="article-card-meta"><time datetime="{d}">{d}</time></p>'
+            f'  <p class="article-card-excerpt">{desc}</p>'
+            f'  <p><a class="article-card-link" href="/articles/{slug}/">繼續閱讀 →</a></p>'
+            f'</article>'
+        )
+    new_main = f'''<main class="site-main articles-main">
+  <header class="articles-header">
+    <p class="article-breadcrumb"><a href="/">首頁</a> ・ 文章</p>
+    <h1>健康知識・衛教專欄</h1>
+    <p class="section-sub">藥師親寫，給北屯昌平路一帶住戶的用藥與保健資訊。</p>
+  </header>
+  <div class="articles-list">
+    {"".join(items)}
+  </div>
+</main>'''
+    html = re.sub(r'<main class="site-main">.*?</main>', new_main, html, count=1, flags=re.S)
+
+    out_path = ARTICLES_OUT / "index.html"
+    out_path.write_text(html, encoding="utf-8")
+    print(f"Generated articles index at {out_path}")
 
 
 if __name__ == "__main__":

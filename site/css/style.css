@@ -113,6 +113,27 @@ a:hover { text-decoration: underline; }
   max-width: 640px;
   margin-left: auto;
 }
+.header-nav {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.header-nav a {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+  padding: 6px 4px;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+}
+.header-nav a:hover {
+  color: var(--brand);
+  border-bottom-color: var(--brand);
+}
+@media (max-width: 640px) {
+  .header-nav { width: 100%; justify-content: center; }
+}
 #searchInput {
   width: 100%;
   padding: 16px 44px 16px 52px;
@@ -851,4 +872,237 @@ mark {
 @media (prefers-reduced-motion: reduce) {
   .skeleton-thumb,
   .skeleton-line { animation: none; }
+}
+
+/* ---------- Articles (衛教 / 文章) ---------- */
+.article-main, .articles-main {
+  max-width: 820px;   /* 文章用窄欄、好讀 */
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+}
+.article-breadcrumb {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.article-breadcrumb a {
+  color: var(--ink-soft);
+  text-decoration: underline;
+}
+
+/* 列表頁 */
+.articles-header h1 {
+  margin: 8px 0 12px;
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--ink);
+}
+.articles-list {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.article-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--brand);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  box-shadow: var(--shadow);
+}
+.article-card-title {
+  margin: 0 0 6px;
+  font-size: 22px;
+  line-height: 1.5;
+}
+.article-card-title a {
+  color: var(--ink);
+  text-decoration: none;
+}
+.article-card-title a:hover { color: var(--brand); }
+.article-card-meta {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.article-card-excerpt {
+  margin: 0 0 10px;
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+.article-card-link {
+  font-weight: 700;
+  color: var(--brand);
+}
+
+/* 單篇文章 */
+.article-header {
+  margin-bottom: 20px;
+}
+.article-title {
+  margin: 4px 0 8px;
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.article-meta {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.article-body {
+  font-size: 19px;
+  line-height: 1.85;
+  color: var(--ink);
+}
+.article-body p {
+  margin: 14px 0;
+}
+.article-body p.article-lead {
+  font-size: 20px;
+  background: var(--brand-soft);
+  border-left: 4px solid var(--brand);
+  padding: 14px 18px;
+  border-radius: 0 8px 8px 0;
+}
+.article-body h2 {
+  margin: 36px 0 12px;
+  font-size: 24px;
+  font-weight: 800;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--brand-soft);
+}
+.article-body h3 {
+  margin: 24px 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--brand);
+}
+.article-body ol, .article-body ul {
+  padding-left: 24px;
+  margin: 12px 0;
+}
+.article-body li {
+  margin: 6px 0;
+}
+.article-body a {
+  color: var(--brand);
+  text-decoration: underline;
+}
+.article-body .info-list {
+  list-style: none;
+  padding-left: 0;
+}
+.article-body .info-list li {
+  padding: 6px 0;
+}
+
+/* FAQ */
+.article-body dl.faq {
+  margin: 16px 0;
+  background: #faf6ee;
+  border-radius: 12px;
+  padding: 8px 18px;
+}
+.article-body dl.faq dt {
+  margin: 16px 0 4px;
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--ink);
+}
+.article-body dl.faq dt::before {
+  content: "Q. ";
+  color: var(--brand);
+  font-weight: 900;
+}
+.article-body dl.faq dd {
+  margin: 0 0 16px;
+  padding-left: 24px;
+  font-size: 17px;
+  line-height: 1.75;
+  position: relative;
+}
+.article-body dl.faq dd::before {
+  content: "A. ";
+  position: absolute;
+  left: 0;
+  color: var(--brand);
+  font-weight: 900;
+}
+
+/* footer cta */
+.article-footer {
+  margin-top: 36px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.article-cta-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+/* 相關商品 */
+.related-section {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.related-section h2 {
+  font-size: 22px;
+  margin: 0 0 14px;
+}
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 14px;
+}
+.related-product {
+  display: block;
+  text-decoration: none;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: transform .15s ease;
+}
+.related-product:hover {
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+.related-product img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+}
+.related-product-title {
+  display: block;
+  padding: 8px 10px;
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+/* 行內品牌 link */
+.brand-inline {
+  color: var(--brand);
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1.5px solid var(--brand);
+}
+
+@media (max-width: 480px) {
+  .article-title { font-size: 24px; }
+  .article-body { font-size: 17px; }
+  .article-body p.article-lead { font-size: 18px; }
+  .article-body h2 { font-size: 21px; }
+  .article-body h3 { font-size: 19px; }
+  .related-grid { grid-template-columns: repeat(2, 1fr); }
 }
