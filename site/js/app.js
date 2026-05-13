@@ -702,6 +702,25 @@
 
   init();
 
+  // -------------------------------------------------- Bundle 卡：點擊 → 自動篩選 + 滾到 gallery
+  document.addEventListener("click", (e) => {
+    const link = e.target.closest(".bundle-cta[data-q]");
+    if (!link) return;
+    // 內部錨點（#gallery）才攔截；外部連結（LINE、tel）放行
+    const href = link.getAttribute("href") || "";
+    if (!href.startsWith("#")) return;
+    e.preventDefault();
+    const q = (link.getAttribute("data-q") || "").trim();
+    if (els.search) {
+      els.search.value = q;
+      els.search.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    const gallery = document.getElementById("gallery");
+    if (gallery) {
+      gallery.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+
   // -------------------------------------------------- 浮動 CTA：依滾動方向顯隱
   const cta = $("#floatingCtaGroup") || $("#floatingCta");
   if (cta) {
