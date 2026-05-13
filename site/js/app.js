@@ -721,30 +721,8 @@
     }
   });
 
-  // -------------------------------------------------- 浮動 CTA：依滾動方向顯隱
-  const cta = $("#floatingCtaGroup") || $("#floatingCta");
-  if (cta) {
-    let lastY = window.scrollY || 0;
-    let ticking = false;
-    const TH = 6;   // 死區，避免微小晃動誤觸發
-    function onScroll() {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        const y = window.scrollY;
-        if (y < 80) {
-          cta.classList.remove("is-hidden");          // 接近頂端永遠顯示
-        } else if (y > lastY + TH) {
-          cta.classList.add("is-hidden");             // 往下滾 → 藏
-        } else if (y < lastY - TH) {
-          cta.classList.remove("is-hidden");          // 往上滾 → 顯示
-        }
-        lastY = y;
-        ticking = false;
-      });
-    }
-    window.addEventListener("scroll", onScroll, { passive: true });
-  }
+  // 浮動 CTA：永遠顯示（50+ 客群消失時容易誤以為點不到）
+  // 之前依滾動方向顯隱的邏輯已移除
 
   // -------------------------------------------------- 首頁 banner：下滾即淡出+收合
   const banner = $("#siteBanner");
