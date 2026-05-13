@@ -757,8 +757,24 @@ def extract_faq_pairs(body: str):
     return pairs
 
 
+def to_iso8601_tw(date_str: str) -> str:
+    """把 'YYYY-MM-DD' 補上 09:00:00 + 台灣時區，讓 Google 滿意。
+       已是 ISO datetime 就原樣回傳。"""
+    if not date_str:
+        return ""
+    s = date_str.strip()
+    # 已含時間（T 或空格分隔）就不動
+    if "T" in s or " " in s and ":" in s:
+        return s
+    if re.match(r"^\d{4}-\d{2}-\d{2}$", s):
+        return f"{s}T09:00:00+08:00"
+    return s
+
+
 def build_article_jsonld(meta: dict, article_url: str, image_url: str):
     """產生 Article + FAQPage (如果有 FAQ) 兩個 JSON-LD。"""
+    published = to_iso8601_tw(meta.get("date", ""))
+    modified = to_iso8601_tw(meta.get("modified", "") or meta.get("date", ""))
     article_data = {
         "@context": "https://schema.org",
         "@type": "Article",
@@ -767,8 +783,8 @@ def build_article_jsonld(meta: dict, article_url: str, image_url: str):
         "description": meta.get("description", ""),
         "image": image_url,
         "url": article_url,
-        "datePublished": meta.get("date", ""),
-        "dateModified": meta.get("date", ""),
+        "datePublished": published,
+        "dateModified": modified,
         "inLanguage": "zh-Hant-TW",
         "author": {
             "@type": "Organization",
@@ -859,14 +875,15 @@ def build_article_main_html(meta: dict, products: list) -> str:
     """組出 <main> 內部 HTML（替換掉首頁的 main 內容）。"""
     title = html_escape(meta.get("title", ""))
     date = meta.get("date", "")
-    body = meta.get("body", "")
+    date_iso = to_iso8601_tw(date)
     related = build_related_products_html(meta, products)
+    body = meta.get("body", "")
     return f'''<main class="site-main article-main">
   <article class="article">
     <header class="article-header">
       <p class="article-breadcrumb"><a href="/">首頁</a> ・ <a href="/articles/">文章</a></p>
       <h1 class="article-title">{title}</h1>
-      <p class="article-meta"><time datetime="{html_escape(date)}">{html_escape(date)}</time> ・ 惠登藥局 北屯昌平路</p>
+      <p class="article-meta"><time datetime="{html_escape(date_iso)}">{html_escape(date)}</time> ・ 惠登藥局 北屯昌平路</p>
     </header>
     <div class="article-body">
 {body}
