@@ -1112,12 +1112,11 @@ mark {
   font-weight: 600;
 }
 
-/* 行內品牌 link */
+/* 行內品牌 link（保留 fallback；新規則：直接用 <a> 即可，不必加 class） */
 .brand-inline {
   color: var(--brand);
   font-weight: 700;
   text-decoration: none;
-  border-bottom: 1.5px solid var(--brand);
 }
 
 @media (max-width: 480px) {
