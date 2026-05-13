@@ -521,7 +521,12 @@ def build_seo_description(p: dict, title_raw: str) -> str:
 
 
 def build_product_jsonld(p: dict, title_raw: str, image_url: str, product_url: str) -> str:
-    """產生 Product schema JSON-LD 字串（含 script 標籤）。"""
+    """產生 Product schema JSON-LD 字串（含 script 標籤）。
+
+    Google Rich Results 規則：
+      - 若有 offers，price + priceCurrency 必填
+      - 諮詢藥師 / 沒填價的商品 → 不放 offers，避免被判 invalid
+    """
     data = {
         "@context": "https://schema.org",
         "@type": "Product",
@@ -539,26 +544,35 @@ def build_product_jsonld(p: dict, title_raw: str, image_url: str, product_url: s
     elif p.get("usage"):
         data["description"] = p["usage"]
 
-    # 賣家 / 販售地點：指向首頁的 Pharmacy 實體
-    data["offers"] = {
-        "@type": "Offer",
-        "url": product_url,
-        "priceCurrency": "TWD",
-        "availability": (
-            "https://schema.org/OutOfStock"
-            if p.get("soldOut")
-            else "https://schema.org/InStock"
-        ),
-        "seller": {"@id": f"{SITE_BASE_URL}/#pharmacy"},
-        "areaServed": "TW",
-    }
-    # 如果有特價或原價就填 price，否則略過 (避免 rich result 失敗)
-    price = p.get("priceSale") or p.get("priceOriginal")
-    if price is not None:
+    # 只在「有公開價格」時才產生 offers
+    price_raw = p.get("priceSale") or p.get("priceOriginal")
+    price_value = None
+    if price_raw is not None:
         try:
-            data["offers"]["price"] = str(int(float(price)))
+            price_value = str(int(float(price_raw)))
         except (TypeError, ValueError):
-            pass
+            price_value = None
+
+    if price_value is not None:
+        data["offers"] = {
+            "@type": "Offer",
+            "url": product_url,
+            "priceCurrency": "TWD",
+            "price": price_value,
+            "availability": (
+                "https://schema.org/OutOfStock"
+                if p.get("soldOut")
+                else "https://schema.org/InStock"
+            ),
+            "seller": {"@id": f"{SITE_BASE_URL}/#pharmacy"},
+            "areaServed": "TW",
+        }
+    # 沒價格但完售：放在 description 結尾標註，不放 offers
+    elif p.get("soldOut"):
+        if "description" in data:
+            data["description"] = data["description"] + "（目前完售）"
+        else:
+            data["description"] = "目前完售"
 
     return (
         '<script type="application/ld+json">\n'
