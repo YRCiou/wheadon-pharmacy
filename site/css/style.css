@@ -1105,15 +1105,12 @@ mark {
   white-space: nowrap;
 }
 
-/* FAQ */
+/* FAQ：Q/A 對齊文章本文左邊緣，跟其他段落一樣 */
 .article-body dl.faq {
   margin: 16px 0;
-  background: #faf6ee;
-  border-radius: 12px;
-  padding: 8px 18px;
 }
 .article-body dl.faq dt {
-  margin: 16px 0 4px;
+  margin: 20px 0 4px;
   font-weight: 800;
   font-size: 18px;
   color: var(--ink);
@@ -1125,15 +1122,12 @@ mark {
 }
 .article-body dl.faq dd {
   margin: 0 0 16px;
-  padding-left: 24px;
+  padding-left: 0;
   font-size: 17px;
   line-height: 1.75;
-  position: relative;
 }
 .article-body dl.faq dd::before {
   content: "A. ";
-  position: absolute;
-  left: 0;
   color: var(--brand);
   font-weight: 900;
 }
