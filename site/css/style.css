@@ -1058,6 +1058,16 @@ mark {
   padding: 14px 18px;
   border-radius: 0 8px 8px 0;
 }
+.article-body p.warning-box,
+.article-body .warning-box {
+  font-size: 16px;
+  background: #fff7e6;
+  border-left: 4px solid #d97706;
+  padding: 12px 16px;
+  border-radius: 0 8px 8px 0;
+  margin: 16px 0;
+  line-height: 1.7;
+}
 .article-body h2 {
   margin: 36px 0 12px;
   font-size: 24px;
