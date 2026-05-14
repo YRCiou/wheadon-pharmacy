@@ -702,6 +702,31 @@
 
   init();
 
+  // -------------------------------------------------- 公佈欄：載入時 fetch、有勾選才顯示
+  (async function loadAnnouncement() {
+    const apiUrl = (cfg && cfg.APPS_SCRIPT_URL) || "";
+    if (!apiUrl) return;
+    const box = document.getElementById("announcement");
+    if (!box) return;
+    try {
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=UTF-8" },
+        body: JSON.stringify({ action: "getAnnouncement" }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data || !data.ok) return;
+      if (data.show && data.content && data.content.trim()) {
+        box.innerHTML = data.content;
+        box.hidden = false;
+      }
+    } catch (e) {
+      // 公佈欄失敗不影響其他功能，靜默就好
+      console.debug("announcement load skipped", e);
+    }
+  })();
+
   // -------------------------------------------------- Bundle 卡：點擊 → 自動篩選 + 滾到 gallery
   document.addEventListener("click", (e) => {
     const link = e.target.closest(".bundle-cta[data-q]");

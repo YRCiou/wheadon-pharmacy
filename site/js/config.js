@@ -21,6 +21,9 @@ window.SITE_CONFIG = {
   // 圖片清單檔（由 build_data.py 產生）
   POSTS_JSON_URL: "/data/posts.json",
 
+  // Apps Script Web App（公佈欄等動態 API）
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycby7PjtsKqKcKSg13LZ9gBN8L7QlrSxZYOB6RU7zMDS--DDEDr0OpCWRNJM6NcUF9kys/exec",
+
   // 自訂顯示名稱
   PHARMACY_NAME_ZH: "惠登藥局",
   PHARMACY_NAME_EN: "Wheadon Pharmacy",

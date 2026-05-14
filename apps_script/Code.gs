@@ -93,13 +93,15 @@ function doPost(e) {
   const action = body.action;
   try {
     // 公開 actions
-    if (action === "ping")      return json_({ ok: true, time: Date.now() });
-    if (action === "login")     return json_(handleLogin_(body));
+    if (action === "ping")             return json_({ ok: true, time: Date.now() });
+    if (action === "login")            return json_(handleLogin_(body));
+    if (action === "getAnnouncement")  return json_(handleGetAnnouncement_());
 
     // 需要 token 的 actions
     if (!verifyToken_(body.token)) {
       return json_({ ok: false, error: "尚未登入或登入逾時" });
     }
+    if (action === "setAnnouncement")  return json_(handleSetAnnouncement_(body));
     if (action === "list")           return json_(handleList_());
     if (action === "update")         return json_(handleUpdate_(body));
     if (action === "add")            return json_(handleAdd_(body));
@@ -532,4 +534,52 @@ function ub64u_(s) {
 function ub64uBytes_(s) {
   const padded = s + "===".slice((s.length + 3) % 4);
   return Utilities.base64DecodeWebSafe(padded);
+}
+
+
+// ============================================================
+// 公佈欄 (Announcement)
+// 儲存在 Script Properties：
+//   ANNOUNCEMENT_SHOW    = "true" | "false"
+//   ANNOUNCEMENT_CONTENT = sanitized HTML
+// ============================================================
+
+function handleGetAnnouncement_() {
+  const props = PropertiesService.getScriptProperties();
+  const show = props.getProperty('ANNOUNCEMENT_SHOW') === 'true';
+  const content = props.getProperty('ANNOUNCEMENT_CONTENT') || '';
+  return { ok: true, show: show, content: content };
+}
+
+function handleSetAnnouncement_(body) {
+  const show = !!body.show;
+  const raw = String(body.content || '');
+  const safe = sanitizeAnnouncementHtml_(raw);
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty('ANNOUNCEMENT_SHOW', String(show));
+  props.setProperty('ANNOUNCEMENT_CONTENT', safe);
+  return { ok: true };
+}
+
+/**
+ * 公佈欄 HTML 消毒：只允許白名單 tag、移除 inline event handler、阻擋 javascript: URL。
+ * 編輯來源是登入後的管理員，所以這裡是「防呆」而非嚴格 untrust。
+ */
+function sanitizeAnnouncementHtml_(html) {
+  if (!html) return '';
+  // 移除危險 tag（含內容）
+  html = html.replace(/<(script|style|iframe|object|embed|link|meta|form|input|textarea|select|button)\b[\s\S]*?<\/\1>/gi, '');
+  // 移除自閉合危險 tag
+  html = html.replace(/<(script|style|iframe|object|embed|link|meta|input|br|img)\b[^>]*\/?>/gi, function(match, tag) {
+    if (tag.toLowerCase() === 'br' || tag.toLowerCase() === 'img') return match;
+    return '';
+  });
+  // 移除所有 inline event handler (onclick / onload / onerror ...)
+  html = html.replace(/\son\w+\s*=\s*"[^"]*"/gi, '');
+  html = html.replace(/\son\w+\s*=\s*'[^']*'/gi, '');
+  html = html.replace(/\son\w+\s*=\s*[^\s>]+/gi, '');
+  // 把 javascript:/data: URL 拒掉
+  html = html.replace(/(href|src)\s*=\s*"(javascript:|data:)[^"]*"/gi, '$1="#"');
+  html = html.replace(/(href|src)\s*=\s*'(javascript:|data:)[^']*'/gi, "$1='#'");
+  return html.trim();
 }

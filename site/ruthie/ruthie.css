@@ -529,3 +529,56 @@ input, textarea, select { font-family: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .skeleton-row { animation: none; }
 }
+
+/* ---------- 公佈欄編輯器 ---------- */
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  background: #f5f1ea;
+  border: 1px solid #e6e1d9;
+  border-radius: 8px 8px 0 0;
+  border-bottom: 0;
+}
+.editor-toolbar button {
+  padding: 6px 12px;
+  border: 1px solid #d4ccc0;
+  background: #fff;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+  color: #333;
+}
+.editor-toolbar button:hover { background: #fffaf0; border-color: #d97706; }
+.editor-toolbar select {
+  padding: 6px 8px;
+  border: 1px solid #d4ccc0;
+  background: #fff;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.ann-editor {
+  min-height: 160px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 14px 16px;
+  border: 1px solid #e6e1d9;
+  border-radius: 0 0 8px 8px;
+  background: #fff;
+  font-size: 16px;
+  line-height: 1.7;
+  outline: none;
+}
+.ann-editor:focus { border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,0.12); }
+.ann-editor:empty::before {
+  content: attr(data-placeholder);
+  color: #aaa;
+}
+.ann-editor h1, .ann-editor h2 { margin: 8px 0 4px; font-size: 22px; font-weight: 800; }
+.ann-editor h3 { margin: 6px 0 4px; font-size: 18px; font-weight: 700; }
+.ann-editor p { margin: 6px 0; }
+.ann-editor strong, .ann-editor b { font-weight: 800; }

@@ -1204,3 +1204,51 @@ mark {
   .article-body h3 { font-size: 19px; }
   .related-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ---------- 公佈欄（後台勾選顯示時才出現） ---------- */
+.announcement {
+  max-width: 1200px;
+  margin: 18px auto 4px;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, #fff7d6 0%, #ffe8b3 100%);
+  border-left: 6px solid #d97706;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(180, 130, 30, 0.18);
+  font-size: 18px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+.announcement > *:first-child { margin-top: 0; }
+.announcement > *:last-child  { margin-bottom: 0; }
+.announcement h1,
+.announcement h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #92400e;
+}
+.announcement h3 {
+  margin: 10px 0 6px;
+  font-size: 19px;
+  font-weight: 700;
+  color: #92400e;
+}
+.announcement p { margin: 8px 0; }
+.announcement strong, .announcement b { color: #b45309; font-weight: 800; }
+.announcement a {
+  color: #b45309;
+  font-weight: 700;
+  text-decoration: underline;
+}
+.announcement ul, .announcement ol { padding-left: 22px; margin: 8px 0; }
+
+@media (max-width: 600px) {
+  .announcement {
+    margin: 14px 12px 4px;
+    padding: 14px 18px;
+    font-size: 16px;
+  }
+  .announcement h1,
+  .announcement h2 { font-size: 19px; }
+  .announcement h3 { font-size: 17px; }
+}

@@ -542,6 +542,97 @@
     }
   });
 
+  // -------------------------------------------------- 公佈欄
+  $("#announcementBtn").onclick = async () => {
+    const modal = $("#announcementModal");
+    const editor = $("#annEditor");
+    const show = $("#annShow");
+    const err = $("#annErr");
+    err.hidden = true;
+    modal.hidden = false;
+    editor.innerHTML = '<p>載入中…</p>';
+    show.checked = false;
+    try {
+      const r = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=UTF-8" },
+        body: JSON.stringify({ action: "getAnnouncement" }),
+      }).then(r => r.json());
+      if (r.ok) {
+        editor.innerHTML = r.content || '';
+        show.checked = !!r.show;
+        updateAnnPreview();
+      } else {
+        editor.innerHTML = '<p>讀取失敗</p>';
+      }
+    } catch (e) {
+      editor.innerHTML = '<p>讀取失敗：' + e.message + '</p>';
+    }
+  };
+
+  // 工具列：bold / formatBlock / list / link / emoji
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".editor-toolbar button[data-cmd]");
+    if (!btn) return;
+    const cmd = btn.getAttribute("data-cmd");
+    const arg = btn.getAttribute("data-arg") || null;
+    $("#annEditor").focus();
+    if (cmd === "createLink") {
+      const url = prompt("輸入連結網址（http(s)://...）：");
+      if (url) document.execCommand("createLink", false, url);
+    } else {
+      document.execCommand(cmd, false, arg);
+    }
+    updateAnnPreview();
+  });
+
+  // Emoji picker
+  const emojiPicker = $("#emojiPicker");
+  if (emojiPicker) {
+    emojiPicker.addEventListener("change", () => {
+      const emoji = emojiPicker.value;
+      if (!emoji) return;
+      $("#annEditor").focus();
+      document.execCommand("insertText", false, emoji);
+      emojiPicker.value = "";
+      updateAnnPreview();
+    });
+  }
+
+  // 編輯時更新預覽
+  const annEditorEl = $("#annEditor");
+  if (annEditorEl) {
+    annEditorEl.addEventListener("input", updateAnnPreview);
+    annEditorEl.addEventListener("blur", updateAnnPreview);
+  }
+  function updateAnnPreview() {
+    const pre = $("#annPreview");
+    if (pre) pre.textContent = annEditorEl ? annEditorEl.innerHTML : '';
+  }
+
+  // 儲存
+  $("#annSaveBtn").onclick = async () => {
+    const editor = $("#annEditor");
+    const show = $("#annShow");
+    const err = $("#annErr");
+    const btn = $("#annSaveBtn");
+    err.hidden = true;
+    btn.disabled = true;
+    try {
+      await api("setAnnouncement", {
+        show: show.checked,
+        content: editor.innerHTML,
+      });
+      $("#announcementModal").hidden = true;
+      toast(show.checked ? "✓ 公佈欄已儲存並顯示" : "✓ 公佈欄已儲存（未顯示）");
+    } catch (e) {
+      err.textContent = "儲存失敗：" + e.message;
+      err.hidden = false;
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
   // -------------------------------------------------- 管理員管理
   $("#usersBtn").onclick = async () => {
     $("#usersModal").hidden = false;

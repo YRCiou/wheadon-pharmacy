@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="ruthie.css?v=5" />
+<link rel="stylesheet" href="ruthie.css?v=6" />
 </head>
 <body>
 
@@ -41,6 +41,7 @@
       <button id="addBtn" class="btn-primary">＋ 新增商品</button>
       <button id="igImportBtn" class="btn-primary" style="background:#c13584">📥 從 IG 連結</button>
       <button id="republishBtn" class="btn-primary" style="background:#0969da">🚀 重新發布</button>
+      <button id="announcementBtn" class="btn-primary" style="background:#d97706">📢 公佈欄</button>
       <button id="reloadBtn" class="btn-ghost" title="重新讀取">↻</button>
       <button id="usersBtn" class="btn-ghost">管理員</button>
       <button id="logoutBtn" class="btn-ghost">登出</button>
@@ -175,6 +176,71 @@
   </div>
 </div>
 
+<!-- 公佈欄 modal -->
+<div id="announcementModal" class="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card">
+    <button class="modal-close" type="button" data-close aria-label="關閉">×</button>
+    <h2>公佈欄設定</h2>
+    <p style="margin:0 0 12px;font-size:13px;color:#666;line-height:1.6">
+      勾選「顯示在前台」後，公告會出現在前台首頁（在「我們的服務」上方）。
+      未勾選時前台不會顯示。可隨時編輯內容，按「儲存」立即生效。
+    </p>
+
+    <label class="cbx" style="margin-bottom:14px">
+      <input type="checkbox" id="annShow" />
+      <span>顯示在前台</span>
+    </label>
+
+    <div class="editor-toolbar" role="toolbar" aria-label="編輯工具">
+      <button type="button" data-cmd="bold" title="粗體 (Ctrl+B)"><b>B</b></button>
+      <button type="button" data-cmd="formatBlock" data-arg="H2" title="大標">H2</button>
+      <button type="button" data-cmd="formatBlock" data-arg="H3" title="副標">H3</button>
+      <button type="button" data-cmd="formatBlock" data-arg="P" title="一般段落">P</button>
+      <button type="button" data-cmd="insertUnorderedList" title="項目清單">• 清單</button>
+      <button type="button" data-cmd="unlink" title="移除超連結">取消連結</button>
+      <button type="button" data-cmd="createLink" title="加超連結">🔗 連結</button>
+      <select id="emojiPicker" aria-label="插入 Emoji">
+        <option value="">😀 Emoji…</option>
+        <option value="📢">📢 廣播</option>
+        <option value="🎉">🎉 慶祝</option>
+        <option value="🔔">🔔 提醒</option>
+        <option value="⚠️">⚠️ 警告</option>
+        <option value="✅">✅ 勾選</option>
+        <option value="🆕">🆕 新</option>
+        <option value="🕘">🕘 時間</option>
+        <option value="📍">📍 地址</option>
+        <option value="☎️">☎️ 電話</option>
+        <option value="💊">💊 藥</option>
+        <option value="🏥">🏥 醫療</option>
+        <option value="💉">💉 注射</option>
+        <option value="🎁">🎁 禮物</option>
+        <option value="❤️">❤️ 愛心</option>
+        <option value="✨">✨ 閃亮</option>
+        <option value="👉">👉 指向</option>
+        <option value="🙏">🙏 感謝</option>
+        <option value="🚫">🚫 禁止</option>
+        <option value="📅">📅 日曆</option>
+      </select>
+    </div>
+
+    <div id="annEditor" class="ann-editor" contenteditable="true"
+         data-placeholder="在這裡輸入公告內容…"></div>
+
+    <details style="margin-top:8px">
+      <summary style="cursor:pointer;font-size:13px;color:#666">查看前台預覽 HTML</summary>
+      <pre id="annPreview" style="margin:8px 0 0;background:#f5f1ea;padding:10px;border-radius:6px;font-size:12px;max-height:120px;overflow:auto;white-space:pre-wrap"></pre>
+    </details>
+
+    <div id="annErr" class="err" hidden></div>
+
+    <div class="modal-actions">
+      <button type="button" data-close class="btn-ghost">取消</button>
+      <button type="button" id="annSaveBtn" class="btn-primary">儲存</button>
+    </div>
+  </div>
+</div>
+
 <!-- 改密碼 modal -->
 <div id="pwdModal" class="modal" hidden>
   <div class="modal-backdrop" data-close></div>
@@ -249,6 +315,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script src="ruthie.js?v=5"></script>
+<script src="ruthie.js?v=6"></script>
 </body>
 </html>
