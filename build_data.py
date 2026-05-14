@@ -694,11 +694,10 @@ def write_product_pages(posts):
     for sub in products_root.iterdir():
         if sub.is_dir() and sub.name.isdigit() and sub.name not in keep_serials:
             try:
-                for f in sub.iterdir():
-                    f.unlink()
-                sub.rmdir()
+                shutil.rmtree(sub)
             except Exception as e:
-                print(f"  ⚠️ 無法清掉舊資料夾 {sub.name}: {e}")
+                # 避免 Windows cp950 console 編碼問題，移除 emoji
+                print(f"  [warn] 無法清掉舊資料夾 {sub.name}: {e}")
 
     print(f"Generated {len(posts)} product pages in {products_root}")
 
@@ -1032,11 +1031,9 @@ def write_article_pages(articles, products):
     for sub in ARTICLES_OUT.iterdir():
         if sub.is_dir() and sub.name not in keep and sub.name not in {"_assets"}:
             try:
-                for f in sub.iterdir():
-                    f.unlink()
-                sub.rmdir()
+                shutil.rmtree(sub)
             except Exception as e:
-                print(f"  ⚠️ 無法清掉舊文章 {sub.name}: {e}")
+                print(f"  [warn] 無法清掉舊文章 {sub.name}: {e}")
 
     print(f"Generated {len(articles)} article pages in {ARTICLES_OUT}")
 
