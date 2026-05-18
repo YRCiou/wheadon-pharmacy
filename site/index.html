@@ -54,7 +54,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="/css/style.css?v=24" />
+<link rel="stylesheet" href="/css/style.css?v=25" />
 
 <!-- Structured data: LocalBusiness / Pharmacy -->
 <script type="application/ld+json">
@@ -141,6 +141,24 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   }
 }
 </script>
+
+<!-- WebPage + Speakable（語音助理 / AI 摘要抽取提示）-->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "@id": "https://wheadon-pharmacy.pages.dev/#webpage",
+  "url": "https://wheadon-pharmacy.pages.dev/",
+  "name": "惠登藥局｜台中北屯昌平路藥局",
+  "inLanguage": "zh-Hant-TW",
+  "isPartOf": { "@id": "https://wheadon-pharmacy.pages.dev/#pharmacy" },
+  "about": { "@id": "https://wheadon-pharmacy.pages.dev/#pharmacy" },
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [".site-intro"]
+  }
+}
+</script>
 </head>
 <body>
 <!-- Google Tag Manager (noscript) -->
@@ -181,6 +199,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <main class="site-main">
   <h1 class="visually-hidden">惠登藥局｜台中北屯昌平路・中西藥調劑・健保慢箋・保健食品</h1>
+
+  <p class="site-intro">惠登藥局是位於台中市北屯區昌平路一段 434 號的健保特約社區藥局，提供中藥與西藥調劑、慢性病連續處方箋（慢箋）領藥、保健食品與藥師一對一諮詢，營業時間為週一至週六 09:00–21:00，電話 (04) 2422-5682。</p>
 
   <!-- 我們的服務 -->
   <section class="services" aria-labelledby="services-title">

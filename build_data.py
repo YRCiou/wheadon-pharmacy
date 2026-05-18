@@ -849,6 +849,10 @@ def build_article_jsonld(meta: dict, article_url: str, image_url: str):
             },
         },
         "mainEntityOfPage": article_url,
+        "speakable": {
+            "@type": "SpeakableSpecification",
+            "cssSelector": [".article-title", ".article-lead", ".article-tldr"],
+        },
     }
     if meta.get("keywords"):
         article_data["keywords"] = meta["keywords"]
@@ -920,13 +924,41 @@ def build_related_products_html(meta: dict, products: list) -> str:
     )
 
 
+def build_tldr_html(meta: dict) -> str:
+    """frontmatter 的 summary（用 | 分隔）→ 重點整理區塊（AI 摘要最愛抽的格式）。"""
+    raw = (meta.get("summary") or "").strip()
+    if not raw:
+        return ""
+    points = [p.strip() for p in raw.split("|") if p.strip()]
+    if not points:
+        return ""
+    lis = "".join(f"<li>{html_escape(p)}</li>" for p in points)
+    return (
+        '<aside class="article-tldr" aria-label="重點整理">'
+        '<p class="article-tldr-title">重點整理</p>'
+        f'<ul>{lis}</ul>'
+        '</aside>'
+    )
+
+
+def inject_tldr_after_lead(body: str, tldr: str) -> str:
+    """把 TL;DR 區塊插在 <p class="article-lead">…</p> 之後；沒有 lead 就放最前面。"""
+    if not tldr:
+        return body
+    lead_match = re.search(r'<p class="article-lead">.*?</p>', body, re.S)
+    if lead_match:
+        end = lead_match.end()
+        return body[:end] + "\n" + tldr + body[end:]
+    return tldr + "\n" + body
+
+
 def build_article_main_html(meta: dict, products: list) -> str:
     """組出 <main> 內部 HTML（替換掉首頁的 main 內容）。"""
     title = html_escape(meta.get("title", ""))
     date = meta.get("date", "")
     date_iso = to_iso8601_tw(date)
     related = build_related_products_html(meta, products)
-    body = meta.get("body", "")
+    body = inject_tldr_after_lead(meta.get("body", ""), build_tldr_html(meta))
     return f'''<main class="site-main article-main">
   <article class="article">
     <header class="article-header">

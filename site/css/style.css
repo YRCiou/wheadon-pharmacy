@@ -182,6 +182,22 @@ a:hover { text-decoration: underline; }
 }
 .empty p { font-size: 19px; }
 
+/* 首頁定義句（AI / 語音摘要抽取友善的中性陳述）*/
+.site-intro {
+  margin: 4px 0 8px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--brand);
+  border-radius: 0 10px 10px 0;
+  font-size: 18px;
+  line-height: 1.75;
+  color: var(--ink);
+}
+@media (max-width: 600px) {
+  .site-intro { font-size: 16px; padding: 14px 16px; }
+}
+
 /* ---------- Section heading shared ---------- */
 .section-title {
   margin: 36px 0 6px;
@@ -1066,6 +1082,31 @@ mark {
   padding: 12px 16px;
   border-radius: 0 8px 8px 0;
   margin: 16px 0;
+  line-height: 1.7;
+}
+
+/* 重點整理（AI / 語音摘要抽取友善） */
+.article-tldr {
+  margin: 20px 0;
+  padding: 16px 20px;
+  background: #f3f8f4;
+  border: 1px solid var(--brand-soft);
+  border-radius: 12px;
+}
+.article-tldr-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--brand);
+  letter-spacing: 1px;
+}
+.article-tldr ul {
+  margin: 0;
+  padding-left: 22px;
+}
+.article-tldr li {
+  margin: 5px 0;
+  font-size: 17px;
   line-height: 1.7;
 }
 .article-body h2 {

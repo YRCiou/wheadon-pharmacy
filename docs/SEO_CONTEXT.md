@@ -177,5 +177,10 @@
 - 2026-05-14：④⑤ 兩篇**暫下架**，待用戶確認《藥事法》相關法規後再決定上線方式
   * 源檔已刪除、輸出目錄已清空、sitemap 自動更新為 26 URLs
   * 〈社區藥局 vs 大醫院〉#3 不涉及藥品介紹，保留上線
+- 2026-05-14：AI 摘要友善優化（B+D+E）
+  * B：frontmatter 加 `summary:`，自動渲染「重點整理」區塊（3 篇皆補）
+  * D：文章 Article schema + 首頁 WebPage schema 加 `speakable`
+  * E：首頁加 `.site-intro` 中性定義句（AI 可整句引用）
+  * articles/README.md 加「AI 摘要友善」規範，未來文章必填 summary
 
 > ★ 更新本檔時請加日期 + 一行摘要，方便未來追蹤。
